@@ -12,11 +12,14 @@ function ChatSection({messages, onSend} : Props) {
 
   const [input,setInput] = useState<string>();
 
+  console.log('ChatSection messages:', messages);
+
   const handleSend=()=> {
     if(!input?.trim()) return;
     onSend(input);
     setInput('');
   }
+
 
   return (
     <div className='w-96 shadow h-[94vh] p-4 flex flex-col'>

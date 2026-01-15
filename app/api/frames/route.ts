@@ -27,15 +27,19 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // fetch chat messages
+  // fetch chat messages for this frame only
   const chatResult = await db.select().from(chatTable)
     // @ts-ignore
     .where(eq(chatTable.frameId, frameId));
 
-  // safely handle empty chatResult
+  // chatMessage is an array in each row, flatten all arrays into one, and filter out null/undefined
+  const chatMessages = chatResult
+    .flatMap((msg) => Array.isArray(msg.chatMessage) ? msg.chatMessage : [msg.chatMessage])
+    .filter((msg) => msg && msg.role && msg.content);
+
   const finalResult = {
     ...frameResult[0],
-    chatMessages: chatResult.length > 0 ? chatResult[0].chatMessage : [], // fallback to empty array
+    chatMessages, // always an array
   };
 
   return NextResponse.json(finalResult);
