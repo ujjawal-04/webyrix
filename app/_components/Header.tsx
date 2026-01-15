@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { SignInButton } from '@clerk/nextjs'
 import { ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -16,7 +17,7 @@ const Header = () => {
     {/*Logo*/}
     <div className='flex gap-2 items-center'>
       <Image src="/logo.svg" alt="Logo" width={35} height={35} />
-      <h2>Webyrix</h2>
+      <h2 className='text-lg font-bold'>Webyrix</h2>
     </div>
     {/*Navigation*/}
     <div className='flex gap-3'> 
@@ -28,7 +29,9 @@ const Header = () => {
     </div>
     {/*Get Started Button*/}
     <div>
+      <SignInButton mode='modal' forceRedirectUrl={'/workspace'}>
       <Button>Get Started <ArrowRight /></Button>
+      </SignInButton>
     </div>
     </div>
   )
