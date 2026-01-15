@@ -8,7 +8,7 @@ import { UserDetailContext } from '@/context/UserDetailContext'
 
 function Provider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser()
-  const [userDetails, setUserDetails] = useState<any>();
+  const [userDetail, setUserDetail] = useState<any>();
   const hasCreatedUser = useRef(false)
 
   useEffect(() => {
@@ -22,14 +22,14 @@ function Provider({ children }: { children: React.ReactNode }) {
     try {
       const res = await axios.post('/api/users')
       console.log(res.data);
-      setUserDetails(res.data?.user);
+      setUserDetail(res.data?.user);
     } catch (error) {
       console.error('Create user failed:', error)
     }
   }
 
   return <>
-  <UserDetailContext.Provider value={{ userDetails, setUserDetails }}>
+  <UserDetailContext.Provider value={{ userDetail, setUserDetail }}>
   {children}
   </UserDetailContext.Provider>
   </>

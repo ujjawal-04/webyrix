@@ -1,17 +1,20 @@
+'use client'
 import { Button } from '@/components/ui/button'
 import { SignInButton } from '@clerk/nextjs'
 import { ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import React from 'react'
+import { useUser } from '@clerk/nextjs'
 
 const navigation = [
     {name: 'Home', href: '/'},
     {name: 'Pricing', href: '/pricing'},
     {name: 'Contact-us', href: '/contact'}
 ]
-
 const Header = () => {
+  const { user } = useUser();
+  
   return (
     <div className='flex items-center justify-between p-4 shadow'>
     {/*Logo*/}
@@ -29,12 +32,15 @@ const Header = () => {
     </div>
     {/*Get Started Button*/}
     <div>
-      <SignInButton mode='modal' forceRedirectUrl={'/workspace'}>
+      {!user ? <SignInButton mode='modal' forceRedirectUrl={'/workspace'}>
       <Button>Get Started <ArrowRight /></Button>
-      </SignInButton>
+      </SignInButton> :
+      <Link href={'/workspace'}>
+      <Button>Get Started <ArrowRight /></Button>
+      </Link>}
     </div>
-    </div>
+  </div>
   )
 }
 
-export default Header
+export default Header;
