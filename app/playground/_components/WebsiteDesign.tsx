@@ -82,7 +82,7 @@ function WebsiteDesign({ generatedCode }: Props) {
     <div className='p-5 w-full'>
     <iframe
       ref={iframeRef}
-      className="w-full h-[900px] border rounded"
+      className="w-full h-225 border rounded"
       sandbox="allow-scripts allow-same-origin"
     />
     </div>

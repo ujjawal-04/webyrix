@@ -26,7 +26,7 @@ Instructions:
 1. If the user input is explicitly asking to generate code, design, or HTML/CSS/JS output (e.g., "Create a landing page", "Build a dashboard", "Generate HTML Tailwind CSS code"), then:
 
 - Generate a complete HTML Tailwind CSS code using Flowbite UI components.
-- Use a modern design with **blue as the primary color**.
+- Use a modern design with good colors.
 - Only include the <body> content (do not add <head> or <title>).
 - Make it fully responsive for all screen sizes.
 - All primary components must match the theme color.
@@ -65,36 +65,53 @@ function PlayGround() {
   const [frameDetail, setFrameDetail] = useState<Frame>();
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Messages[]>([]); 
-  const [generatedCode, setGeneratedCode] = useState<any>('');
+  const [generatedCode, setGeneratedCode] = useState<string>('');
 
   useEffect(() => {
     frameId && GetFrameDetails();
   }, [frameId]);
 
   const GetFrameDetails = async () => {
+    try {
       const result = await axios.get(`/api/frames?frameId=${frameId}&projectId=${projectId}`);
       console.log("Frame Details:", result.data);
       setFrameDetail(result.data);
+      
       const designCode = result.data?.designCode;
-      const index = designCode.indexOf('```html') + 7;
-      const formattedCode = designCode.slice(index);
-      setGeneratedCode(formattedCode);
+      
+      // ✅ Check if designCode exists before processing
+      if (designCode) {
+        const index = designCode.indexOf('```html');
+        if (index !== -1) {
+          const formattedCode = designCode.slice(index + 7);
+          setGeneratedCode(formattedCode);
+        } else {
+          // If no code fence, use the code as-is
+          setGeneratedCode(designCode);
+        }
+      }
 
       // Auto-send first message if exists
-      if (result.data?.chatMessages?.length == 1) {
+      if (result.data?.chatMessages?.length === 1) {
         const userMsg = result.data?.chatMessages[0].content;
         SendMessage(userMsg);
-      } else {
+      } else if (result.data?.chatMessages) {
         setMessages(result.data?.chatMessages);
       }
-   
+    } catch (error) {
+      console.error("Error fetching frame details:", error);
+      toast.error("Failed to load frame details");
+    }
   };
 
   const SendMessage = async (userInput: string) => {
     setLoading(true);
 
     // Add user message to chat
-    setMessages((prev:any) => [...prev, { role: 'user', content: userInput }]);
+    setMessages((prev: any) => [...prev, { role: 'user', content: userInput }]);
+
+    // Reset generatedCode before streaming new code
+    setGeneratedCode('');
 
     try {
       const result = await fetch('/api/ai-model', {
@@ -122,9 +139,9 @@ function PlayGround() {
           isCode = true;
           const index = aiResponse.indexOf('```html') + 7;
           const initialCodeChunk = aiResponse.slice(index);
-          setGeneratedCode((prev :any) => prev + initialCodeChunk);
+          setGeneratedCode((prev: any) => prev + initialCodeChunk);
         } else if (isCode) {
-          setGeneratedCode((prev : any) => prev + chunk);
+          setGeneratedCode((prev: any) => prev + chunk);
         }
       }
 
@@ -132,54 +149,61 @@ function PlayGround() {
 
       // after streaming ends
       if (!isCode) {
-        setMessages((prev:any) => [
+        setMessages((prev: any) => [
           ...prev,
           { role: 'assistant', content: aiResponse }
         ]);
       } else {
-        setMessages((prev:any) => [
+        setMessages((prev: any) => [
           ...prev,
           { role: 'assistant', content: 'Your code is ready!' }
         ]);
       }
-    
 
     } catch (error) {
       console.error("Error sending message:", error);
-      setMessages((prev:any) => [
+      setMessages((prev: any) => [
         ...prev,
         { role: 'assistant', content: 'Sorry, something went wrong.' }
       ]);
+      toast.error("Failed to generate code");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if(messages.length > 0) {
+    if (messages.length > 0) {
       SaveMessages();
     }
   }, [messages]);
 
-  const SaveMessages=async()=> {
-     const result = await axios.put('/api/chats', {
-      messages: messages,
-      frameId: frameId
-     });
+  const SaveMessages = async () => {
+    try {
+      const result = await axios.put('/api/chats', {
+        messages: messages,
+        frameId: frameId
+      });
       console.log(result);
+    } catch (error) {
+      console.error("Error saving messages:", error);
+    }
   }
 
-
   const saveGeneratedCode = async (code: string) => {
-    const result = await axios.put('/api/frames', {
-      designCode: code,
-      frameId: frameId,
-      projectId: projectId
+    try {
+      const result = await axios.put('/api/frames', {
+        designCode: code,
+        frameId: frameId,
+        projectId: projectId
       });
       console.log(result.data);
       toast.success('Website is Ready!');
+    } catch (error) {
+      console.error("Error saving code:", error);
+      toast.error("Failed to save website");
+    }
   }
-
 
   return (
     <div>
@@ -187,7 +211,7 @@ function PlayGround() {
 
       <div className='flex'>
         <ChatSection
-          messages={messages ?? []}
+          messages={messages}
           onSend={(input: string) => SendMessage(input)}
           loading={loading}
         />
