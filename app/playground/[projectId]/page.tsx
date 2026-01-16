@@ -67,11 +67,10 @@ function PlayGround() {
   const [generatedCode, setGeneratedCode] = useState<any>('');
 
   useEffect(() => {
-    if (frameId) GetFrameDetails();
+    frameId && GetFrameDetails();
   }, [frameId]);
 
   const GetFrameDetails = async () => {
-    try {
       const result = await axios.get(`/api/frames?frameId=${frameId}&projectId=${projectId}`);
       console.log("Frame Details:", result.data);
       setFrameDetail(result.data);
@@ -80,10 +79,10 @@ function PlayGround() {
       if (result.data?.chatMessages?.length == 1) {
         const userMsg = result.data?.chatMessages[0].content;
         SendMessage(userMsg);
+      } else {
+        setMessages(result.data?.chatMessages);
       }
-    } catch (error) {
-      console.error("Error fetching frame details:", error);
-    }
+   
   };
 
   const SendMessage = async (userInput: string) => {
@@ -149,8 +148,18 @@ function PlayGround() {
   };
 
   useEffect(() => {
-    console.log(generatedCode);
-  }, [generatedCode]);
+    if(messages.length > 0) {
+      SaveMessages();
+    }
+  }, [messages]);
+
+  const SaveMessages=async()=> {
+     const result = await axios.put('/api/chats', {
+      messages: messages,
+      frameId: frameId
+     });
+      console.log(result);
+  }
 
 
   return (
