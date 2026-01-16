@@ -1,100 +1,146 @@
-import React, { useEffect, useRef, useState } from 'react';
-import WebPageTools from './WebPageTools';
-
+import React, { useEffect, useRef, useState } from "react";
+import WebPageTools from "./WebPageTools";
 
 type Props = {
   generatedCode: string;
-}
+};
 
+const HTML_CODE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body id="root"></body>
+</html>`;
 
 function WebsiteDesign({ generatedCode }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [selectedScreenSize, setSelectedScreenSize] = useState('web');
+  const [selectedScreenSize, setSelectedScreenSize] = useState("web");
 
-  // Initialize iframe shell once
+  const selectedElRef = useRef<HTMLElement | null>(null);
+  const hoverElRef = useRef<HTMLElement | null>(null);
+
+  /** 1️⃣ Initialize iframe ONCE */
   useEffect(() => {
-    if (!iframeRef.current) return;
-    const doc = iframeRef.current.contentDocument;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const doc = iframe.contentDocument;
     if (!doc) return;
 
     doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="AI Website Builder - Modern TailwindCSS + Flowbite Template" />
-        <title>Webyrix</title>
-
-        <!-- Tailwind CSS -->
-        <script src="https://cdn.tailwindcss.com"></script>
-
-        <!-- Flowbite CSS & JS -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
-
-        <!-- Font Awesome / Lucide -->
-        <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-
-        <!-- Chart.js -->
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-        <!-- AOS -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet" />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
-
-        <!-- GSAP -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-
-        <!-- Lottie -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.11.2/lottie.min.js"></script>
-
-        <!-- Swiper -->
-        <link href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" rel="stylesheet" />
-        <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
-
-        <!-- Tippy.js -->
-        <link href="https://unpkg.com/tippy.js@6/dist/tippy.css" rel="stylesheet" />
-        <script src="https://unpkg.com/@popperjs/core@2"></script>
-        <script src="https://unpkg.com/tippy.js@6"></script>
-      </head>
-      <body id="root"></body>
-      </html>
-    `);
+    doc.write(HTML_CODE);
     doc.close();
+
+    const handleMouseOver = (e: MouseEvent) => {
+      if (selectedElRef.current) return;
+
+      const target = e.target as HTMLElement;
+      if (!target || target === doc.body || target === doc.documentElement)
+        return;
+
+      if (hoverElRef.current && hoverElRef.current !== target) {
+        hoverElRef.current.style.outline = "";
+      }
+
+      hoverElRef.current = target;
+      target.style.outline = "2px dotted blue";
+    };
+
+    const handleMouseOut = () => {
+      if (selectedElRef.current) return;
+      if (hoverElRef.current) {
+        hoverElRef.current.style.outline = "";
+        hoverElRef.current = null;
+      }
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const target = e.target as HTMLElement;
+      if (!target || target === doc.body || target === doc.documentElement)
+        return;
+
+      if (selectedElRef.current) {
+        selectedElRef.current.style.outline = "";
+        selectedElRef.current.removeAttribute("contenteditable");
+      }
+
+      selectedElRef.current = target;
+      target.style.outline = "2px solid red";
+      target.setAttribute("contenteditable", "true");
+      target.focus();
+
+      target.addEventListener("blur", handleBlur);
+    };
+
+    const handleBlur = () => {
+      if (selectedElRef.current) {
+        console.log(
+          "Final edited HTML:",
+          selectedElRef.current.outerHTML
+        );
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedElRef.current) {
+        selectedElRef.current.style.outline = "";
+        selectedElRef.current.removeAttribute("contenteditable");
+        selectedElRef.current = null;
+      }
+    };
+
+    doc.body.addEventListener("mouseover", handleMouseOver);
+    doc.body.addEventListener("mouseout", handleMouseOut);
+    doc.body.addEventListener("click", handleClick);
+    doc.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      doc.body.removeEventListener("mouseover", handleMouseOver);
+      doc.body.removeEventListener("mouseout", handleMouseOut);
+      doc.body.removeEventListener("click", handleClick);
+      doc.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
-  // Update body only when code changes
+  /** 2️⃣ Update HTML safely without breaking selection */
   useEffect(() => {
-    if (!iframeRef.current) return;
-    const doc = iframeRef.current.contentDocument;
+    const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
 
     const root = doc.getElementById("root");
-    if (root) {
-      root.innerHTML =
-        generatedCode
-          .replaceAll("```html", "")
-          .replaceAll("```", "")
-          .replace("html,", "") ?? "";
-    }
+    if (!root) return;
+
+    root.innerHTML = generatedCode
+      .replaceAll("```html", "")
+      .replaceAll("```", "")
+      .replace("html,", "");
   }, [generatedCode]);
 
   return (
-    <div className='p-5 w-full flex items-center flex-col'>
-    <iframe
-      ref={iframeRef}
-      className={`${selectedScreenSize == 'web' ? 'w-full' : 'w-130' } h-215 border-2 rounded-xl`}
-      sandbox="allow-scripts allow-same-origin"
-    />
+    <div className="p-5 w-full flex flex-col items-center">
+      <iframe
+        ref={iframeRef}
+        className={`${
+          selectedScreenSize === "web" ? "w-full" : "w-130"
+        } h-215 border-2 rounded-xl`}
+        sandbox="allow-scripts allow-same-origin"
+      />
 
-    <WebPageTools selectedScreenSize={selectedScreenSize}
-    setSelectedScreenSize={(v: string) => setSelectedScreenSize(v)}
-    generatedCode={generatedCode}
-    />
+      <WebPageTools
+        selectedScreenSize={selectedScreenSize}
+        setSelectedScreenSize={setSelectedScreenSize}
+        generatedCode={generatedCode}
+      />
+
+      
     </div>
   );
 }
 
-export default WebsiteDesign
+export default WebsiteDesign;
