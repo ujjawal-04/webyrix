@@ -174,7 +174,7 @@ function PlayGround() {
         />
 
         {/* Website Design Section */}
-        <WebsiteDesign />
+        <WebsiteDesign generatedCode={generatedCode?.replace('```', '')} />
 
         {/* Element Setting Section */}
         {/* <ElementSettingSection /> */}
