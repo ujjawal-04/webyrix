@@ -6,6 +6,7 @@ import ChatSection from '../_components/ChatSection';
 import { useParams, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import WebsiteDesign from '../_components/WebsiteDesign';
+import { toast } from 'sonner';
 
 export type Messages = {
   role: string;
@@ -74,6 +75,10 @@ function PlayGround() {
       const result = await axios.get(`/api/frames?frameId=${frameId}&projectId=${projectId}`);
       console.log("Frame Details:", result.data);
       setFrameDetail(result.data);
+      const designCode = result.data?.designCode;
+      const index = designCode.indexOf('```html') + 7;
+      const formattedCode = designCode.slice(index);
+      setGeneratedCode(formattedCode);
 
       // Auto-send first message if exists
       if (result.data?.chatMessages?.length == 1) {
@@ -123,6 +128,8 @@ function PlayGround() {
         }
       }
 
+      await saveGeneratedCode(aiResponse);
+
       // after streaming ends
       if (!isCode) {
         setMessages((prev:any) => [
@@ -135,6 +142,7 @@ function PlayGround() {
           { role: 'assistant', content: 'Your code is ready!' }
         ]);
       }
+    
 
     } catch (error) {
       console.error("Error sending message:", error);
@@ -159,6 +167,17 @@ function PlayGround() {
       frameId: frameId
      });
       console.log(result);
+  }
+
+
+  const saveGeneratedCode = async (code: string) => {
+    const result = await axios.put('/api/frames', {
+      designCode: code,
+      frameId: frameId,
+      projectId: projectId
+      });
+      console.log(result.data);
+      toast.success('Website is Ready!');
   }
 
 
