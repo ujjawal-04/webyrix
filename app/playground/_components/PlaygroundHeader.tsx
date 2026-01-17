@@ -10,7 +10,10 @@ function PlaygroundHeader() {
 
   return (
     <div className='flex justify-between items-center p-4 shadow'>
-      <Image src={'/logo.svg'} alt='Logo' width={40} height={40} />
+      <div className="flex items-center">
+        <Image src={'/logo.svg'} alt='Logo' width={40} height={40} />
+        <h2 className="font-bold text-2xl">Webyrix</h2>
+      </div>
       <Button onClick={() => setOnSaveData(Date.now())}>Save</Button>
     </div>
   )
