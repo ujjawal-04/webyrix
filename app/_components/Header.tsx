@@ -18,12 +18,10 @@ const Header = () => {
   return (
     <div className='flex items-center justify-between p-4 shadow'>
     {/*Logo*/}
-    <div className='flex gap-2 items-center'>
-      <Link href='/' className="flex gap-2">
+      <Link href='/' className="flex gap-2 items-center">
         <Image src="/logo.svg" alt="Logo" width={35} height={35} />
-        <h2 className='text-lg font-bold'>Webyrix</h2>
+        <h2 className='text-2xl font-bold'>Webyrix</h2>
       </Link>
-    </div>
     {/*Navigation*/}
     <div className='flex gap-3'> 
         {navigation.map((item) => (

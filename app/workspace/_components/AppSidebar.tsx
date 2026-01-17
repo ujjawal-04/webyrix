@@ -42,12 +42,10 @@ const GetProjectList = async () => {
   return (
     <Sidebar>
         <SidebarHeader className="p-5">
-            <div className="flex items-center gap-2">
-              <Link href='/' className="flex gap-2">
+              <Link href='/' className="flex gap-2 items-center">
                 <Image src={'/logo.svg'} alt='Logo' width={40} height={40} />
                 <h2 className="font-bold text-2xl">Webyrix</h2>
               </Link>
-            </div>
             <Link href={'/workspace'} className="w-full mt-5">
             <Button className="w-full">
                 + Add New Project
