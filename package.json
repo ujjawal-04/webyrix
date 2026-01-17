@@ -47,6 +47,8 @@
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "embla-carousel-react": "^8.6.0",
+    "imagekit": "^6.0.0",
+    "imagekit-javascript": "^4.0.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.562.0",
     "next": "16.1.2",
