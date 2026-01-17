@@ -13,7 +13,7 @@ import Image from "next/image"
 import { useContext, useEffect, useState } from "react"
 import { UserDetailContext } from "@/context/UserDetailContext"
 import { Progress } from "@/components/ui/progress"
-import { UserButton } from "@clerk/nextjs"
+import { useAuth, UserButton } from "@clerk/nextjs"
 import { Ghost } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -22,10 +22,13 @@ export function AppSidebar() {
 const [projectList, setProjectList] = useState([]);
 const { userDetail, setUserDetail } = useContext(UserDetailContext);
 const [loading, setLoading] = useState(false);
+const { has } = useAuth();
 
 useEffect(() => {
   GetProjectList();
 }, []);
+
+const hasUnlimitedAccess = has && has({ plan: 'unlimited' });
 
 const GetProjectList = async () => {
   setLoading(true);
@@ -72,13 +75,15 @@ const GetProjectList = async () => {
         <SidebarGroup />
       </SidebarContent>
       <SidebarFooter className="p-2">
-        <div className="p-3 border rounded-xl space-y-3 bg-secondary">
+        { !hasUnlimitedAccess &&<div className="p-3 border rounded-xl space-y-3 bg-secondary">
             <h2 className="flex justify-between items-center">Remaining Credits<span className="font-bold">{userDetail?.credits}</span></h2>
-            <Progress value={33} />
+            <Progress value={(userDetail?.credits/2)*100} />
+            <Link href={'/workspace/pricing'} className="w-full">
             <Button className="w-full">
                 Upgrade to Unlimited
             </Button>
-        </div>
+            </Link>
+        </div> }
         <div className="flex gap-2 item-center">
             <UserButton />
             <Button variant={'ghost'}>Settings</Button>
