@@ -19,8 +19,10 @@ const Header = () => {
     <div className='flex items-center justify-between p-4 shadow'>
     {/*Logo*/}
     <div className='flex gap-2 items-center'>
-      <Image src="/logo.svg" alt="Logo" width={35} height={35} />
-      <h2 className='text-lg font-bold'>Webyrix</h2>
+      <Link href='/'>
+        <Image src="/logo.svg" alt="Logo" width={35} height={35} />
+        <h2 className='text-lg font-bold'>Webyrix</h2>
+      </Link>
     </div>
     {/*Navigation*/}
     <div className='flex gap-3'> 
