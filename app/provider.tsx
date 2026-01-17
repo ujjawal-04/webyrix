@@ -5,11 +5,14 @@ import axios from 'axios'
 import { useUser } from '@clerk/nextjs'
 import { User } from 'lucide-react'
 import { UserDetailContext } from '@/context/UserDetailContext'
+import { OnSaveContext } from '@/context/OnSaveContext'
+import { on } from 'events'
 
 function Provider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser()
   const [userDetail, setUserDetail] = useState<any>();
-  const hasCreatedUser = useRef(false)
+  const hasCreatedUser = useRef(false);
+  const [onSaveData, setOnSaveData] = useState<any>();
 
   useEffect(() => {
     if (!isLoaded || !user || hasCreatedUser.current) return
@@ -30,7 +33,9 @@ function Provider({ children }: { children: React.ReactNode }) {
 
   return <>
   <UserDetailContext.Provider value={{ userDetail, setUserDetail }}>
-  {children}
+    <OnSaveContext.Provider value={{onSaveData, setOnSaveData}}>
+        {children}
+    </OnSaveContext.Provider>
   </UserDetailContext.Provider>
   </>
 }

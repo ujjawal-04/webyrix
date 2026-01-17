@@ -108,7 +108,9 @@ function ImageSettingSection({ selectedEl }: Props) {
       setPreview(url);
       selectedEl.setAttribute('src',url);
     } else {
-        const url = preview.replaceAll(trValue + ',', '');
+      const url = preview.replaceAll(trValue + ',', '');
+      setPreview(url);
+      selectedEl.setAttribute('src',url);
     }
     
   }

@@ -1,7 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import WebPageTools from "./WebPageTools";
 import ElementSettingSection from "./ElementSettingSection";
 import ImageSettingSection from "./ImageSettingsSection";
+import { OnSaveContext } from "@/context/OnSaveContext";
+import { on } from "events";
+import axios from "axios";
+import { useParams, useSearchParams } from "next/navigation";
 
 type Props = {
   generatedCode: string;
@@ -21,6 +25,10 @@ function WebsiteDesign({ generatedCode }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [selectedScreenSize, setSelectedScreenSize] = useState("web");
   const [selectedElement, setSelectedElement] = useState<HTMLElement | null>();
+  const {onSaveData, setOnSaveData} = useContext(OnSaveContext);
+  const { projectId } = useParams();
+  const params = useSearchParams();
+  const frameId = params.get('frameId');
 
   const selectedElRef = useRef<HTMLElement | null>(null);
   const hoverElRef = useRef<HTMLElement | null>(null);
@@ -137,6 +145,43 @@ function WebsiteDesign({ generatedCode }: Props) {
       .replaceAll("```", "")
       .replace("html,", "");
   }, [generatedCode]);
+
+  useEffect(() => {
+    onSaveData && onSaveCode();
+  }, [onSaveData]);
+
+  const onSaveCode =async () => {
+    if(iframeRef.current) {
+   try {
+    const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
+    if(iframeDoc) {
+        const cloneDoc = iframeDoc.documentElement.cloneNode(true) as HTMLElement;
+
+        //remove all outlines
+        const AllEls = cloneDoc.querySelectorAll<HTMLElement>("*");
+        AllEls.forEach((el) => {
+            el.style.outline = '';
+            el.style.cursor= '';
+        }
+      )
+
+      const html = cloneDoc.outerHTML;
+      console.log("HTML to save:", html);
+
+      const result = await axios.put('/api/frames', {
+        designCode: html,
+        frameId: frameId,
+        projectId: projectId
+      });
+      console.log(result.data);
+      toast.success('Saved Successfully!');
+
+    }
+  } catch(err) {
+    console.log(err);
+  }
+ }
+}
 
   return (
     <div className="flex gap-2 w-full">
