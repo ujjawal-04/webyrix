@@ -8,6 +8,9 @@ import { useAuth } from '@clerk/nextjs';
 import axios from 'axios';
 import WebsiteDesign from '../_components/WebsiteDesign';
 import { toast } from 'sonner';
+import { usePanelState } from '@/hooks/usePanelState';
+import ElementSettingSection from '../_components/ElementSettingSection';
+import ImageSettingSection from '../_components/ImageSettingsSection';
 
 export type Messages = {
   role: string;
@@ -68,6 +71,27 @@ function PlayGround() {
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Messages[]>([]);
   const [generatedCode, setGeneratedCode] = useState<string>('');
+  const [selectedElement, setSelectedElement] = useState<HTMLElement | null>(null);
+
+  // Panel state management
+  const {
+    panelStates,
+    togglePanel,
+    expandPanel,
+    minimizePanel,
+    resetPanel,
+    screenSize
+  } = usePanelState();
+
+  // Refresh iframe - force reload of generated code
+  const handleRefresh = () => {
+    const currentCode = generatedCode;
+    setGeneratedCode('');
+    setTimeout(() => {
+      setGeneratedCode(currentCode);
+      toast.success('Preview refreshed!');
+    }, 50);
+  };
 
   useEffect(() => {
     frameId && GetFrameDetails();
@@ -257,18 +281,81 @@ function PlayGround() {
   }
 
   return (
-    <div>
-      <PlaygroundHeader />
+    <div className='h-screen flex flex-col bg-gray-100 dark:bg-gray-950'>
+      <PlaygroundHeader
+        onRefresh={handleRefresh}
+        onUndo={() => toast.info('Undo functionality coming soon!')}
+        onRedo={() => toast.info('Redo functionality coming soon!')}
+        canUndo={false}
+        canRedo={false}
+      />
 
-      <div className='flex'>
-        <ChatSection
-          messages={messages}
-          onSend={(input: string) => SendMessage(input)}
-          loading={loading}
-        />
+      <div className='flex flex-col md:flex-row flex-1 overflow-hidden'>
+        {/* Chat Section */}
+        {!panelStates.chat.minimized && (
+          <ChatSection
+            messages={messages}
+            onSend={(input: string) => SendMessage(input)}
+            loading={loading}
+            isMinimized={panelStates.chat.minimized}
+            isExpanded={panelStates.chat.expanded}
+            onToggle={() => togglePanel('chat')}
+            onExpand={() => expandPanel('chat')}
+            onMinimize={() => resetPanel('chat')}
+          />
+        )}
+
+        {/* Minimized Chat Panel */}
+        {panelStates.chat.minimized && (
+          <div className="w-12 h-full bg-gray-100 dark:bg-gray-800 border-r flex flex-col items-center pt-4 cursor-pointer" onClick={() => togglePanel('chat')}>
+            <div className="writing-mode-vertical text-xs font-medium text-gray-600 dark:text-gray-400">Chat</div>
+          </div>
+        )}
 
         {/* Website Design Section */}
-        <WebsiteDesign generatedCode={generatedCode?.replace('```', '')} />
+        <WebsiteDesign
+          generatedCode={generatedCode?.replace('```', '')}
+          isMinimized={panelStates.preview.minimized}
+          isExpanded={panelStates.preview.expanded}
+          onToggle={() => togglePanel('preview')}
+          onExpand={() => expandPanel('preview')}
+          onMinimize={() => resetPanel('preview')}
+          onElementSelect={setSelectedElement}
+        />
+
+        {/* Settings Panel - Right Side */}
+        {selectedElement && !panelStates.settings.minimized && (
+          <>
+            {selectedElement.tagName === 'IMG' ? (
+              <ImageSettingSection
+                // @ts-ignore
+                selectedEl={selectedElement}
+                isMinimized={panelStates.settings.minimized}
+                isExpanded={panelStates.settings.expanded}
+                onToggle={() => togglePanel('settings')}
+                onExpand={() => expandPanel('settings')}
+                onMinimize={() => resetPanel('settings')}
+              />
+            ) : (
+              <ElementSettingSection
+                selectedEl={selectedElement}
+                clearSelection={() => setSelectedElement(null)}
+                isMinimized={panelStates.settings.minimized}
+                isExpanded={panelStates.settings.expanded}
+                onToggle={() => togglePanel('settings')}
+                onExpand={() => expandPanel('settings')}
+                onMinimize={() => resetPanel('settings')}
+              />
+            )}
+          </>
+        )}
+
+        {/* Minimized Settings Panel */}
+        {panelStates.settings.minimized && selectedElement && (
+          <div className="w-12 h-full bg-gray-100 dark:bg-gray-800 border-l flex flex-col items-center pt-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" onClick={() => togglePanel('settings')}>
+            <div className="writing-mode-vertical text-xs font-medium text-gray-600 dark:text-gray-400">Settings</div>
+          </div>
+        )}
 
       </div>
     </div>

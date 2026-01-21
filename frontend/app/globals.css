@@ -123,3 +123,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom utilities for panel controls */
+.writing-mode-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Smooth transitions for panel resizing */
+.panel-transition {
+  transition: width 0.3s ease-in-out, height 0.3s ease-in-out;
+}
