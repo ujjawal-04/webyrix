@@ -1,16 +1,21 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import WebPageTools from "./WebPageTools";
-import ElementSettingSection from "./ElementSettingSection";
-import ImageSettingSection from "./ImageSettingsSection";
 import { OnSaveContext } from "@/context/OnSaveContext";
-import { on } from "events";
 import axios from "axios";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { toast } from "sonner";
+import PanelHeader from "./PanelHeader";
+import { Monitor } from "lucide-react";
 
 type Props = {
   generatedCode: string;
+  isMinimized: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onExpand: () => void;
+  onMinimize: () => void;
+  onElementSelect: (element: HTMLElement | null) => void;
 };
 
 const HTML_CODE = `<!DOCTYPE html>
@@ -23,10 +28,9 @@ const HTML_CODE = `<!DOCTYPE html>
 <body id="root"></body>
 </html>`;
 
-function WebsiteDesign({ generatedCode }: Props) {
+function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExpand, onMinimize, onElementSelect }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [selectedScreenSize, setSelectedScreenSize] = useState("web");
-  const [selectedElement, setSelectedElement] = useState<HTMLElement | null>();
   const { onSaveData, setOnSaveData } = useContext(OnSaveContext);
   const { projectId } = useParams();
   const params = useSearchParams();
@@ -35,18 +39,25 @@ function WebsiteDesign({ generatedCode }: Props) {
 
   const selectedElRef = useRef<HTMLElement | null>(null);
   const hoverElRef = useRef<HTMLElement | null>(null);
+  const [iframeInitialized, setIframeInitialized] = useState(false);
 
-  /** 1️⃣ Initialize iframe ONCE */
+  /** 1️⃣ Initialize iframe ONCE and when panel is reopened */
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!iframe) return;
+    if (!iframe || isMinimized) return;
 
     const doc = iframe.contentDocument;
     if (!doc) return;
 
-    doc.open();
-    doc.write(HTML_CODE);
-    doc.close();
+    // Only initialize if not already done or if content is missing
+    const needsInit = !doc.body || !doc.getElementById("root");
+
+    if (needsInit) {
+      doc.open();
+      doc.write(HTML_CODE);
+      doc.close();
+      setIframeInitialized(true);
+    }
 
     // Wait for doc.body to be available after writing HTML
     const setupListeners = () => {
@@ -90,7 +101,7 @@ function WebsiteDesign({ generatedCode }: Props) {
         target.setAttribute("contenteditable", "true");
         target.focus();
         target.addEventListener("blur", handleBlur);
-        setSelectedElement(target);
+        onElementSelect(target);
       };
 
       const handleBlur = () => {
@@ -133,7 +144,7 @@ function WebsiteDesign({ generatedCode }: Props) {
     return () => {
       if (cleanup) cleanup();
     };
-  }, []);
+  }, []); // Initialize once
 
   /** 2️⃣ Update HTML safely without breaking selection */
   useEffect(() => {
@@ -143,10 +154,15 @@ function WebsiteDesign({ generatedCode }: Props) {
     const root = doc.getElementById("root");
     if (!root) return;
 
-    root.innerHTML = generatedCode
-      .replaceAll("```html", "")
-      .replaceAll("```", "")
-      .replace("html,", "");
+    // Only update if there's actual content to show
+    if (generatedCode && generatedCode.trim()) {
+      const cleanCode = generatedCode
+        .replaceAll("```html", "")
+        .replaceAll("```", "")
+        .replace("html,", "");
+
+      root.innerHTML = cleanCode;
+    }
   }, [generatedCode]);
 
   useEffect(() => {
@@ -194,31 +210,36 @@ function WebsiteDesign({ generatedCode }: Props) {
   }
 
   return (
-    <div className="flex gap-2 w-full">
-      <div className="p-5 w-full flex flex-col items-center">
-        <iframe
-          ref={iframeRef}
-          className={`${selectedScreenSize === "web" ? "w-full" : "w-130"
-            } h-215 border-2 rounded-xl`}
-          sandbox="allow-scripts allow-same-origin"
-        />
+    <div className={`${isMinimized ? 'w-12' : isExpanded ? 'w-full' : 'flex-1'} 
+      flex flex-col transition-all duration-300 ease-in-out bg-gray-50 dark:bg-gray-900`}>
 
-        <WebPageTools
-          selectedScreenSize={selectedScreenSize}
-          setSelectedScreenSize={setSelectedScreenSize}
-          generatedCode={generatedCode}
-        />
+      <PanelHeader
+        title="Preview"
+        isMinimized={isMinimized}
+        isExpanded={isExpanded}
+        onToggle={onToggle}
+        onExpand={onExpand}
+        onMinimize={onMinimize}
+        icon={<Monitor className="h-4 w-4" />}
+      />
+
+      {/* Keep iframe in DOM but hide when minimized to preserve content */}
+      <div className={`${isMinimized ? 'hidden' : 'flex'} flex-col h-full overflow-auto`}>
+        <div className="p-3 sm:p-5 flex-1 flex flex-col items-center">
+          <iframe
+            ref={iframeRef}
+            className={`${selectedScreenSize === "web" ? "w-full" : "w-full max-w-md"
+              } flex-1 min-h-[400px] border-2 rounded-xl bg-white shadow-lg`}
+            sandbox="allow-scripts allow-same-origin"
+          />
+
+          <WebPageTools
+            selectedScreenSize={selectedScreenSize}
+            setSelectedScreenSize={setSelectedScreenSize}
+            generatedCode={generatedCode}
+          />
+        </div>
       </div>
-
-      {/* Element Setting Section */}
-      {/* @ts-ignore */}
-      {/* <ElementSettingSection } /> */}
-
-      {selectedElement?.tagName === 'IMG' ?
-        // @ts-ignore
-        <ImageSettingSection selectedEl={selectedElement} /> :
-        selectedElement ? <ElementSettingSection selectedEl={selectedElement} clearSelection={() => setSelectedElement(null)} /> : null
-      }
     </div>
   );
 }
