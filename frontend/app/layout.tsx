@@ -25,16 +25,16 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-    <html lang="en">
-      <body
-        className={outfit.className}
-      >
-        <Provider>
-          {children}
-          <Toaster />
-        </Provider>
-      </body>
-    </html>
+      <html lang="en">
+        <body
+          className={outfit.className}
+        >
+          <Provider>
+            {children}
+            <Toaster />
+          </Provider>
+        </body>
+      </html>
     </ClerkProvider>
   );
 }
