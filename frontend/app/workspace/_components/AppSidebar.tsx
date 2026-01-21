@@ -40,7 +40,7 @@ export function AppSidebar() {
     });
     const result = await response.json();
     console.log(result.data);
-    setProjectList(result);
+    setProjectList(result.data || []);
     setLoading(false);
   }
 
@@ -64,10 +64,10 @@ export function AppSidebar() {
             <h2 className="text-sm px-2 text-gray-500">No Project Found</h2>
           }
           <div>
-            {(!loading && projectList.length > 0) ? projectList.map((project: any, index) => (
+            {(!loading && projectList?.length > 0) ? projectList.map((project: any, index) => (
               <Link href={`/playground/${project.projectId}?frameId=${project.frameId}`} key={index} className="my-2 hover:bg-secondary p-2 rounded-lg cursor-pointer">
                 <h2 className="line-clamp-1">
-                  {project?.chats[0].chatMessage[0]?.content}
+                  {project?.messages?.[0]?.content || "New Project"}
                 </h2>
               </Link>
             )) :
