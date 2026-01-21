@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Code2Icon, Download, Monitor, SquareArrowOutUpRightIcon,  Tablet } from 'lucide-react'
+import { Code2Icon, Download, Monitor, SquareArrowOutUpRightIcon, Tablet } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import ViewCodeBlock from './ViewCodeBlock'
 
@@ -48,29 +48,29 @@ const HTML_CODE = `<!DOCTYPE html>
       </body>
       </html>`
 
-function WebPageTools({selectedScreenSize, setSelectedScreenSize, generatedCode}: any) {
+function WebPageTools({ selectedScreenSize, setSelectedScreenSize, generatedCode }: any) {
 
- const [finalCode, setFinalCode] = useState<string>();
+  const [finalCode, setFinalCode] = useState<string>();
 
- useEffect(() => {
-     const cleanCode=(HTML_CODE.replace('{code}', generatedCode) || '')
-    .replaceAll("```html", '')
-    .replace('```', '')
-    .replaceAll('html', '')
-    setFinalCode(cleanCode);    
- }, [generatedCode]);
+  useEffect(() => {
+    const cleanCode = (HTML_CODE.replace('{code}', generatedCode) || '')
+      .replaceAll("```html", '')
+      .replace('```', '')
+      .replaceAll('html', '')
+    setFinalCode(cleanCode);
+  }, [generatedCode]);
 
- const ViewInNewTab = () => {
-    if(!finalCode) return;
+  const ViewInNewTab = () => {
+    if (!finalCode) return;
 
-    const blob = new Blob([finalCode??''], {type:'text/html'});
+    const blob = new Blob([finalCode ?? ''], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
 
     window.open(url, "_blank");
- }
+  }
 
- const downloadCode = () => {
-    const blob = new Blob([finalCode ?? ''], {type: 'text/html'});
+  const downloadCode = () => {
+    const blob = new Blob([finalCode ?? ''], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -78,24 +78,35 @@ function WebPageTools({selectedScreenSize, setSelectedScreenSize, generatedCode}
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
- }
-    
+  }
+
   return (
-    <div className='p-2 shadow rounded-xl w-full flex justify-between'>
-      <div className='flex gap-2'>
-        <Button variant={'ghost'} 
-        className={`${selectedScreenSize == 'web' ? 'border border-primary' : null}`}
-        onClick={() => setSelectedScreenSize('web')}><Monitor /></Button>
-        <Button variant={'ghost'} 
-         className={`${selectedScreenSize == 'mobile' ? 'border border-primary' : null}`}
-        onClick={() => setSelectedScreenSize('mobile')}><Tablet /></Button>
+    <div className='p-2 mt-3 shadow rounded-xl w-full flex flex-col sm:flex-row justify-between gap-2 bg-white dark:bg-gray-800'>
+      <div className='flex gap-2 justify-center'>
+        <Button variant={'ghost'}
+          size="sm"
+          className={`${selectedScreenSize == 'web' ? 'border border-primary' : ''}`}
+          onClick={() => setSelectedScreenSize('web')}><Monitor className='h-4 w-4' /></Button>
+        <Button variant={'ghost'}
+          size="sm"
+          className={`${selectedScreenSize == 'mobile' ? 'border border-primary' : ''}`}
+          onClick={() => setSelectedScreenSize('mobile')}><Tablet className='h-4 w-4' /></Button>
       </div>
-      <div className='flex gap-2 '>
-        <Button variant={'outline'} onClick={() => ViewInNewTab()}>View<SquareArrowOutUpRightIcon /></Button>
+      <div className='flex gap-2 justify-center flex-wrap'>
+        <Button variant={'outline'} size="sm" onClick={() => ViewInNewTab()} className='text-xs sm:text-sm'>
+          <span className='hidden sm:inline'>View</span>
+          <SquareArrowOutUpRightIcon className='h-4 w-4' />
+        </Button>
         <ViewCodeBlock code={finalCode}>
-           <Button >View <Code2Icon /></Button>
+          <Button size="sm" className='text-xs sm:text-sm'>
+            <span className='hidden sm:inline'>View</span>
+            <Code2Icon className='h-4 w-4' />
+          </Button>
         </ViewCodeBlock>
-        <Button onClick={downloadCode}>Download <Download /></Button>
+        <Button onClick={downloadCode} size="sm" className='text-xs sm:text-sm'>
+          <span className='hidden sm:inline'>Download</span>
+          <Download className='h-4 w-4' />
+        </Button>
       </div>
     </div>
   )
