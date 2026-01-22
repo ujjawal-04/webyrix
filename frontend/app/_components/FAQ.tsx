@@ -49,7 +49,7 @@ export default function FAQ() {
         {/* Section Header */}
         <div className="text-center mb-12 md:mb-16 space-y-4">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-foreground">
-            <span className="bg-gradient-to-r from-purple-500 via-pink-400 to-orange-400 bg-clip-text text-transparent">Frequently</span> Asked Questions
+            Frequently Asked Questions
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto font-light tracking-wide">
             Everything you need to know about Webyrix
