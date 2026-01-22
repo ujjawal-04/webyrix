@@ -4,6 +4,7 @@ import Header from "./_components/Header";
 import Hero from "./_components/Hero";
 import Explore from "./_components/Explore";
 import FAQ from "./_components/FAQ";
+import MinimalFooter from "./_components/MinimalFooter";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
       <Hero />
       <Explore />
       <FAQ />
+      <MinimalFooter />
     </div>
   );
 }
