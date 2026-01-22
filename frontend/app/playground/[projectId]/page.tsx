@@ -83,6 +83,27 @@ function PlayGround() {
     screenSize
   } = usePanelState();
 
+  const [mobileTab, setMobileTab] = useState<'chat' | 'preview'>('preview');
+
+  // Keep local mobile tab in sync with panelStates
+  useEffect(() => {
+    if (screenSize === 'mobile') {
+      setMobileTab(panelStates.preview.minimized ? 'chat' : 'preview');
+    }
+  }, [panelStates, screenSize]);
+
+  const selectMobileTab = (tab: 'chat' | 'preview') => {
+    if (tab === 'chat') {
+      resetPanel('chat');
+      minimizePanel('preview');
+      setMobileTab('chat');
+    } else {
+      resetPanel('preview');
+      minimizePanel('chat');
+      setMobileTab('preview');
+    }
+  };
+
   // Refresh iframe - force reload of generated code
   const handleRefresh = () => {
     const currentCode = generatedCode;
@@ -291,6 +312,27 @@ function PlayGround() {
       />
 
       <div className='flex flex-col md:flex-row flex-1 overflow-hidden'>
+        {/* Mobile tab selector */}
+        {screenSize === 'mobile' && (
+          <div className="px-3 pt-3">
+            <div className="flex items-center gap-2 bg-background/50 backdrop-blur-sm rounded-lg p-1">
+              <button
+                aria-pressed={mobileTab === 'chat'}
+                onClick={() => selectMobileTab('chat')}
+                className={`flex-1 text-sm py-2 rounded-md text-center ${mobileTab === 'chat' ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground'}`}
+              >
+                Chat
+              </button>
+              <button
+                aria-pressed={mobileTab === 'preview'}
+                onClick={() => selectMobileTab('preview')}
+                className={`flex-1 text-sm py-2 rounded-md text-center ${mobileTab === 'preview' ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground'}`}
+              >
+                Preview
+              </button>
+            </div>
+          </div>
+        )}
         {/* Chat Section */}
         {!panelStates.chat.minimized && (
           <ChatSection
@@ -305,23 +347,25 @@ function PlayGround() {
           />
         )}
 
-        {/* Minimized Chat Panel */}
-        {panelStates.chat.minimized && (
+        {/* Minimized Chat Panel (hidden on mobile to keep Preview clean) */}
+        {panelStates.chat.minimized && screenSize !== 'mobile' && (
           <div className="w-12 h-full bg-background border-r border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => togglePanel('chat')}>
             <div className="writing-mode-vertical text-xs font-medium text-muted-foreground">Chat</div>
           </div>
         )}
 
-        {/* Website Design Section */}
-        <WebsiteDesign
-          generatedCode={generatedCode?.replace('```', '')}
-          isMinimized={panelStates.preview.minimized}
-          isExpanded={panelStates.preview.expanded}
-          onToggle={() => togglePanel('preview')}
-          onExpand={() => expandPanel('preview')}
-          onMinimize={() => resetPanel('preview')}
-          onElementSelect={setSelectedElement}
-        />
+        {/* Website Design Section (render on desktop/tablet or when Preview tab selected on mobile) */}
+        {(screenSize !== 'mobile' || mobileTab === 'preview') && (
+          <WebsiteDesign
+            generatedCode={generatedCode?.replace('```', '')}
+            isMinimized={panelStates.preview.minimized}
+            isExpanded={panelStates.preview.expanded}
+            onToggle={() => togglePanel('preview')}
+            onExpand={() => expandPanel('preview')}
+            onMinimize={() => resetPanel('preview')}
+            onElementSelect={setSelectedElement}
+          />
+        )}
 
         {/* Settings Panel - Right Side */}
         {selectedElement && !panelStates.settings.minimized && (
@@ -350,8 +394,8 @@ function PlayGround() {
           </>
         )}
 
-        {/* Minimized Settings Panel */}
-        {panelStates.settings.minimized && selectedElement && (
+        {/* Minimized Settings Panel (hidden on mobile) */}
+        {panelStates.settings.minimized && selectedElement && screenSize !== 'mobile' && (
           <div className="w-12 h-full bg-background border-l border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => togglePanel('settings')}>
             <div className="writing-mode-vertical text-xs font-medium text-muted-foreground">Settings</div>
           </div>

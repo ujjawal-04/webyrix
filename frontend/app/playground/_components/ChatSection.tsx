@@ -34,8 +34,7 @@ function ChatSection({
   };
 
   return (
-    <div className={`${isMinimized ? 'w-12' : isExpanded ? 'w-full md:w-2/5' : 'w-full md:w-80 lg:w-96'} 
-      h-[calc(100vh-4rem)] flex flex-col transition-all duration-300 ease-in-out bg-background border-r border-border`}>
+    <div className={`${isMinimized ? 'w-12' : isExpanded ? 'w-full md:w-2/5' : 'flex-1 md:w-80 lg:w-96'} min-h-0 flex flex-col transition-all duration-300 ease-in-out bg-background border-r border-border`}>
 
       <PanelHeader
         title="Chat"
@@ -50,7 +49,7 @@ function ChatSection({
       {!isMinimized && (
         <>
           {/* Message Section */}
-          <div className='flex-1 overflow-y-auto p-4 space-y-4 flex flex-col'>
+          <div className='flex-1 overflow-y-auto p-4 pb-28 md:pb-4 space-y-4 flex flex-col min-h-0'>
             {messages?.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4 text-center">
                  <div className="bg-muted rounded-full p-4 mb-3">
@@ -84,7 +83,7 @@ function ChatSection({
           </div>
 
           {/* Footer Input */}
-          <div className='p-3 border-t border-border bg-background/50 backdrop-blur-sm'>
+          <div className='sticky bottom-0 z-40 p-3 border-t border-border bg-background/80 backdrop-blur-sm' style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 16px)' }}>
             <div className="relative">
               <textarea
                 placeholder='Describe your website design idea...'
@@ -92,7 +91,7 @@ function ChatSection({
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 disabled={loading}
-                rows={3}
+                rows={2}
                 onKeyDown={(e) => {
                    if(e.key === 'Enter' && !e.shiftKey) {
                      e.preventDefault();
