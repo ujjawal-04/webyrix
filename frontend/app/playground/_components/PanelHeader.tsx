@@ -24,18 +24,18 @@ function PanelHeader({
 
     if (isMinimized) {
         return (
-            <div className="flex flex-col items-center justify-start h-full bg-gray-100 dark:bg-gray-800 border-r p-2 gap-2">
+            <div className="flex flex-col items-center justify-start h-full bg-background border-r border-border p-2 gap-2">
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={onToggle}
-                    className="w-8 h-8"
+                    className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-accent"
                     title={`Expand ${title}`}
                 >
                     <ChevronRight className="h-4 w-4" />
                 </Button>
-                {icon && <div className="text-gray-600 dark:text-gray-400">{icon}</div>}
-                <div className="writing-mode-vertical text-xs font-medium text-gray-600 dark:text-gray-400 mt-4">
+                {icon && <div className="text-muted-foreground">{icon}</div>}
+                <div className="writing-mode-vertical text-xs font-medium text-muted-foreground mt-4">
                     {title}
                 </div>
             </div>
@@ -43,10 +43,10 @@ function PanelHeader({
     }
 
     return (
-        <div className="flex items-center justify-between p-3 border-b bg-gray-50 dark:bg-gray-900">
+        <div className="flex items-center justify-between p-3 border-b border-border bg-background">
             <div className="flex items-center gap-2">
-                {icon && <div className="text-gray-700 dark:text-gray-300">{icon}</div>}
-                <h3 className="font-semibold text-sm">{title}</h3>
+                {icon && <div className="text-muted-foreground">{icon}</div>}
+                <h3 className="font-semibold text-sm text-foreground">{title}</h3>
             </div>
             <div className="flex items-center gap-1">
                 {!isExpanded && onExpand && (
@@ -54,7 +54,7 @@ function PanelHeader({
                         variant="ghost"
                         size="icon"
                         onClick={onExpand}
-                        className="w-7 h-7"
+                        className="w-7 h-7 text-muted-foreground hover:text-foreground"
                         title="Expand"
                     >
                         <Maximize2 className="h-3.5 w-3.5" />
@@ -65,7 +65,7 @@ function PanelHeader({
                         variant="ghost"
                         size="icon"
                         onClick={onMinimize}
-                        className="w-7 h-7"
+                        className="w-7 h-7 text-muted-foreground hover:text-foreground"
                         title="Reset size"
                     >
                         <Minimize2 className="h-3.5 w-3.5" />
@@ -75,7 +75,7 @@ function PanelHeader({
                     variant="ghost"
                     size="icon"
                     onClick={onToggle}
-                    className="w-7 h-7"
+                    className="w-7 h-7 text-muted-foreground hover:text-foreground"
                     title="Minimize"
                 >
                     <ChevronLeft className="h-3.5 w-3.5" />
