@@ -16,7 +16,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Request logging middleware
 app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
-    console.log(`\n[$timestamp] ${req.method} ${req.path}`);
+    console.log(`\n[${timestamp}] ${req.method} ${req.path}`);
     console.log(`Headers:`, req.headers.authorization ? 'Auth token present' : 'No auth token');
     if (Object.keys(req.body).length > 0) {
         console.log(`Body:`, JSON.stringify(req.body, null, 2));
@@ -70,7 +70,8 @@ app.listen(PORT, () => {
     console.log(`📍 Server URL: http://localhost:${PORT}`);
     console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
     console.log(`🔐 Clerk: ${process.env.CLERK_SECRET_KEY ? 'Configured' : 'Not configured'}`);
-    console.log(`🤖 OpenRouter: ${process.env.OPENROUTER_API_KEY ? 'Configured' : 'Not configured'}`);
+    const geminiKeyCount = [1, 2, 3, 4, 5].filter(i => process.env[`GEMINI_API_KEY_${i}`]).length;
+    console.log(`🤖 Gemini: ${geminiKeyCount} API key(s) configured`);
     console.log('='.repeat(50));
     console.log('✓ Ready to accept requests\n');
 });
