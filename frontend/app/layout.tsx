@@ -6,7 +6,6 @@ import {
 } from '@clerk/nextjs'
 import Provider from "./provider";
 import { Toaster } from "@/components/ui/sonner";
-import MinimalFooter from "./_components/MinimalFooter";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -33,7 +32,6 @@ export default function RootLayout({
           <Provider>
             {children}
             <Toaster />
-            <MinimalFooter />
           </Provider>
         </body>
       </html>
