@@ -81,31 +81,31 @@ function WebPageTools({ selectedScreenSize, setSelectedScreenSize, generatedCode
   }
 
   return (
-    <div className='p-2 mt-3 shadow rounded-xl w-full flex flex-col sm:flex-row justify-between gap-2 bg-white dark:bg-gray-800'>
-      <div className='flex gap-2 justify-center'>
+    <div className='p-2 mt-3 rounded-xl w-full flex flex-col sm:flex-row justify-between gap-3 bg-card border border-border shadow-sm'>
+      <div className='flex gap-1 justify-center bg-muted/50 p-1 rounded-lg'>
         <Button variant={'ghost'}
           size="sm"
-          className={`${selectedScreenSize == 'web' ? 'border border-primary' : ''}`}
-          onClick={() => setSelectedScreenSize('web')}><Monitor className='h-4 w-4' /></Button>
+          className={`h-8 px-3 transition-all rounded-md ${selectedScreenSize == 'web' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+          onClick={() => setSelectedScreenSize('web')}><Monitor className='h-4 w-4 mr-1' /><span className="text-xs">Web</span></Button>
         <Button variant={'ghost'}
           size="sm"
-          className={`${selectedScreenSize == 'mobile' ? 'border border-primary' : ''}`}
-          onClick={() => setSelectedScreenSize('mobile')}><Tablet className='h-4 w-4' /></Button>
+          className={`h-8 px-3 transition-all rounded-md ${selectedScreenSize == 'mobile' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+          onClick={() => setSelectedScreenSize('mobile')}><Tablet className='h-4 w-4 mr-1' /><span className="text-xs">Mobile</span></Button>
       </div>
-      <div className='flex gap-2 justify-center flex-wrap'>
-        <Button variant={'outline'} size="sm" onClick={() => ViewInNewTab()} className='text-xs sm:text-sm'>
-          <span className='hidden sm:inline'>View</span>
-          <SquareArrowOutUpRightIcon className='h-4 w-4' />
+      <div className='flex gap-2 justify-center flex-wrap items-center'>
+        <Button variant={'outline'} size="sm" onClick={() => ViewInNewTab()} className='text-xs h-9 bg-transparent border-input text-muted-foreground hover:text-foreground hover:bg-accent'>
+          <span className='hidden sm:inline mr-2'>Preview</span>
+          <SquareArrowOutUpRightIcon className='h-3.5 w-3.5' />
         </Button>
         <ViewCodeBlock code={finalCode}>
-          <Button size="sm" className='text-xs sm:text-sm'>
-            <span className='hidden sm:inline'>View</span>
-            <Code2Icon className='h-4 w-4' />
+          <Button size="sm" variant="secondary" className='text-xs h-9'>
+            <span className='hidden sm:inline mr-2'>Source</span>
+            <Code2Icon className='h-3.5 w-3.5' />
           </Button>
         </ViewCodeBlock>
-        <Button onClick={downloadCode} size="sm" className='text-xs sm:text-sm'>
-          <span className='hidden sm:inline'>Download</span>
-          <Download className='h-4 w-4' />
+        <Button onClick={downloadCode} size="sm" className='text-xs h-9'>
+          <span className='hidden sm:inline mr-2'>Export</span>
+          <Download className='h-3.5 w-3.5' />
         </Button>
       </div>
     </div>

@@ -211,7 +211,7 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
 
   return (
     <div className={`${isMinimized ? 'w-12' : isExpanded ? 'w-full' : 'flex-1'} 
-      flex flex-col transition-all duration-300 ease-in-out bg-gray-50 dark:bg-gray-900`}>
+      flex flex-col transition-all duration-300 ease-in-out bg-muted/10`}>
 
       <PanelHeader
         title="Preview"
@@ -225,11 +225,11 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
 
       {/* Keep iframe in DOM but hide when minimized to preserve content */}
       <div className={`${isMinimized ? 'hidden' : 'flex'} flex-col h-full overflow-auto`}>
-        <div className="p-3 sm:p-5 flex-1 flex flex-col items-center">
+        <div className="p-3 sm:p-5 flex-1 flex flex-col items-center justify-center">
           <iframe
             ref={iframeRef}
             className={`${selectedScreenSize === "web" ? "w-full" : "w-full max-w-md"
-              } flex-1 min-h-[400px] border-2 rounded-xl bg-white shadow-lg`}
+              } flex-1 min-h-[400px] border border-border rounded-xl bg-white shadow-sm transition-all duration-300`}
             sandbox="allow-scripts allow-same-origin"
           />
 

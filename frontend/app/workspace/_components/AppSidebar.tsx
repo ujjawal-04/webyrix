@@ -61,7 +61,7 @@ export function AppSidebar() {
         <SidebarGroup >
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
           {!loading && projectList.length == 0 &&
-            <h2 className="text-sm px-2 text-gray-500">No Project Found</h2>
+            <h2 className="text-sm px-2 text-muted-foreground">No Project Found</h2>
           }
           <div>
             {(!loading && projectList.length > 0) ? projectList.map((project: any, index) => (

@@ -25,10 +25,10 @@ function PlaygroundHeader({ onRefresh, onUndo, onRedo, canUndo = false, canRedo 
   const { onSaveData, setOnSaveData } = useContext(OnSaveContext);
 
   return (
-    <div className='flex justify-between items-center p-2 sm:p-3 md:p-4 shadow bg-white dark:bg-gray-900 border-b'>
+    <div className='flex justify-between items-center p-2 sm:p-3 md:p-4 bg-background border-b border-border'>
       <Link href='/' className='flex gap-1 sm:gap-2 items-center hover:opacity-80 transition-opacity'>
         <Image src={'/logo.svg'} alt='Logo' width={32} height={32} className='sm:w-10 sm:h-10' />
-        <h2 className="font-bold text-lg sm:text-xl md:text-2xl ">Webyrix</h2>
+        <h2 className="font-bold text-lg sm:text-xl md:text-2xl text-foreground">Webyrix</h2>
       </Link>
 
       <div className='flex items-center gap-1 sm:gap-2'>
@@ -42,7 +42,7 @@ function PlaygroundHeader({ onRefresh, onUndo, onRedo, canUndo = false, canRedo 
                   size="icon"
                   onClick={onUndo}
                   disabled={!canUndo}
-                  className='h-8 w-8 sm:h-9 sm:w-9'
+                  className='h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground'
                 >
                   <Undo2 className='h-4 w-4' />
                 </Button>
@@ -60,7 +60,7 @@ function PlaygroundHeader({ onRefresh, onUndo, onRedo, canUndo = false, canRedo 
                   size="icon"
                   onClick={onRedo}
                   disabled={!canRedo}
-                  className='h-8 w-8 sm:h-9 sm:w-9'
+                  className='h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground'
                 >
                   <Redo2 className='h-4 w-4' />
                 </Button>
@@ -77,7 +77,7 @@ function PlaygroundHeader({ onRefresh, onUndo, onRedo, canUndo = false, canRedo 
                   variant="outline"
                   size="sm"
                   onClick={onRefresh}
-                  className='h-8 sm:h-9 gap-1'
+                  className='h-8 sm:h-9 gap-1 text-muted-foreground hover:text-foreground border-input'
                 >
                   <RotateCcw className='h-4 w-4' />
                   <span className='hidden sm:inline'>Refresh</span>

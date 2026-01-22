@@ -35,7 +35,7 @@ function ChatSection({
 
   return (
     <div className={`${isMinimized ? 'w-12' : isExpanded ? 'w-full md:w-2/5' : 'w-full md:w-80 lg:w-96'} 
-      shadow h-[calc(100vh-4rem)] flex flex-col transition-all duration-300 ease-in-out bg-white dark:bg-gray-900`}>
+      h-[calc(100vh-4rem)] flex flex-col transition-all duration-300 ease-in-out bg-background border-r border-border`}>
 
       <PanelHeader
         title="Chat"
@@ -50,9 +50,15 @@ function ChatSection({
       {!isMinimized && (
         <>
           {/* Message Section */}
-          <div className='flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 flex flex-col'>
+          <div className='flex-1 overflow-y-auto p-4 space-y-4 flex flex-col'>
             {messages?.length === 0 ? (
-              <p className='text-gray-400 text-center text-sm'>No Messages</p>
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4 text-center">
+                 <div className="bg-muted rounded-full p-4 mb-3">
+                   <MessageSquare className="h-6 w-6 opacity-50" />
+                 </div>
+                 <p className='text-sm font-medium mb-1'>No messages yet</p>
+                 <p className='text-xs opacity-70'>Start a conversation to generate designs</p>
+              </div>
             ) : (
               messages.map((msg, index) => (
                 <div
@@ -60,9 +66,9 @@ function ChatSection({
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`p-2 rounded-lg max-w-[85%] text-sm ${msg.role === 'user'
-                        ? 'bg-gray-100 dark:bg-gray-700 text-black dark:text-white'
-                        : 'bg-gray-300 dark:bg-gray-600 text-black dark:text-white'
+                    className={`p-3 rounded-xl max-w-[85%] text-sm leading-relaxed shadow-sm ${msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground rounded-br-none'
+                        : 'bg-muted text-foreground rounded-bl-none border border-border'
                       }`}
                   >
                     {msg.content}
@@ -71,25 +77,38 @@ function ChatSection({
               ))
             )}
 
-            {loading && <div className='flex justify-center items-center p-4'>
-              <div className='animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-t-2 border-b-2 border-zinc-800 dark:border-zinc-200'></div>
-              <span className='ml-2 text-zinc-800 dark:text-zinc-200 text-xs sm:text-sm'>Thinking... Working on your request</span>
+            {loading && <div className='flex items-center gap-3 p-2 bg-muted/30 rounded-lg mx-2 border border-border/50'>
+              <div className='animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent'></div>
+              <span className='text-muted-foreground text-xs font-medium animate-pulse'>Thinking...</span>
             </div>}
           </div>
 
           {/* Footer Input */}
-          <div className='p-2 sm:p-3 border-t flex items-center gap-2'>
-            <textarea
-              placeholder='Describe your website design idea'
-              className='flex-1 resize-none border rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 dark:bg-gray-800 dark:text-white dark:border-gray-600'
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              disabled={loading}
-              rows={2}
-            />
-            <Button onClick={handleSend} disabled={loading} size="icon" className='shrink-0'>
-              <ArrowUp className='h-4 w-4' />
-            </Button>
+          <div className='p-3 border-t border-border bg-background/50 backdrop-blur-sm'>
+            <div className="relative">
+              <textarea
+                placeholder='Describe your website design idea...'
+                className='w-full resize-none border border-input bg-muted/30 rounded-xl pl-3 pr-10 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-input transition-all'
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                disabled={loading}
+                rows={3}
+                onKeyDown={(e) => {
+                   if(e.key === 'Enter' && !e.shiftKey) {
+                     e.preventDefault();
+                     handleSend();
+                   }
+                }}
+              />
+              <Button 
+                onClick={handleSend} 
+                disabled={loading || !input.trim()} 
+                size="icon" 
+                className='absolute right-2 bottom-2 h-8 w-8 rounded-lg transition-transform hover:scale-105 active:scale-95'
+              >
+                <ArrowUp className='h-4 w-4' />
+              </Button>
+            </div>
           </div>
         </>
       )}

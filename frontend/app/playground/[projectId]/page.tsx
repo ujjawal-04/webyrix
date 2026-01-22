@@ -281,7 +281,7 @@ function PlayGround() {
   }
 
   return (
-    <div className='h-screen flex flex-col bg-gray-100 dark:bg-gray-950'>
+    <div className='h-screen flex flex-col bg-background'>
       <PlaygroundHeader
         onRefresh={handleRefresh}
         onUndo={() => toast.info('Undo functionality coming soon!')}
@@ -307,8 +307,8 @@ function PlayGround() {
 
         {/* Minimized Chat Panel */}
         {panelStates.chat.minimized && (
-          <div className="w-12 h-full bg-gray-100 dark:bg-gray-800 border-r flex flex-col items-center pt-4 cursor-pointer" onClick={() => togglePanel('chat')}>
-            <div className="writing-mode-vertical text-xs font-medium text-gray-600 dark:text-gray-400">Chat</div>
+          <div className="w-12 h-full bg-background border-r border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => togglePanel('chat')}>
+            <div className="writing-mode-vertical text-xs font-medium text-muted-foreground">Chat</div>
           </div>
         )}
 
@@ -352,8 +352,8 @@ function PlayGround() {
 
         {/* Minimized Settings Panel */}
         {panelStates.settings.minimized && selectedElement && (
-          <div className="w-12 h-full bg-gray-100 dark:bg-gray-800 border-l flex flex-col items-center pt-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" onClick={() => togglePanel('settings')}>
-            <div className="writing-mode-vertical text-xs font-medium text-gray-600 dark:text-gray-400">Settings</div>
+          <div className="w-12 h-full bg-background border-l border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => togglePanel('settings')}>
+            <div className="writing-mode-vertical text-xs font-medium text-muted-foreground">Settings</div>
           </div>
         )}
 
