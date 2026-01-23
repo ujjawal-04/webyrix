@@ -11,9 +11,9 @@ export default function Home() {
     <div className="bg-background min-h-screen scroll-smooth">
       <Header />
       <Hero />
-      {/* <Explore />
+      <Explore />
       <FAQ />
-      <MinimalFooter /> */}
+      <MinimalFooter />
     </div>
   );
 }
