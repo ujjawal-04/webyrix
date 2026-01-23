@@ -127,6 +127,10 @@ function PlayGround() {
 
   const [mobileTab, setMobileTab] = useState<'chat' | 'preview'>('preview');
 
+  // Resize state
+  const [chatWidth, setChatWidth] = useState(400); // Default 400px
+  const [isResizing, setIsResizing] = useState(false);
+
   // Keep local mobile tab in sync with panelStates
   useEffect(() => {
     if (screenSize === 'mobile') {
@@ -145,6 +149,38 @@ function PlayGround() {
       setMobileTab('preview');
     }
   };
+
+  // Resize handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = e.clientX;
+      // Constrain width between 280px and 600px
+      if (newWidth >= 280 && newWidth <= 600) {
+        setChatWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   // Refresh iframe - force reload of generated code
   const handleRefresh = () => {
@@ -344,7 +380,7 @@ function PlayGround() {
   }
 
   return (
-    <div className='h-screen flex flex-col bg-background'>
+    <div className='h-screen flex flex-col bg-gradient-to-br from-background via-background to-card/20'>
       <PlaygroundHeader
         onRefresh={handleRefresh}
         onUndo={() => toast.info('Undo functionality coming soon!')}
@@ -357,18 +393,18 @@ function PlayGround() {
         {/* Mobile tab selector */}
         {screenSize === 'mobile' && (
           <div className="px-3 pt-3">
-            <div className="flex items-center gap-2 bg-background/50 backdrop-blur-sm rounded-lg p-1">
+            <div className="flex items-center gap-2 bg-card/50 backdrop-blur-sm rounded-xl p-1 border border-border/30">
               <button
                 aria-pressed={mobileTab === 'chat'}
                 onClick={() => selectMobileTab('chat')}
-                className={`flex-1 text-sm py-2 rounded-md text-center ${mobileTab === 'chat' ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground'}`}
+                className={`flex-1 text-sm py-2 rounded-lg text-center transition-all duration-200 ${mobileTab === 'chat' ? 'bg-background text-foreground font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Chat
               </button>
               <button
                 aria-pressed={mobileTab === 'preview'}
                 onClick={() => selectMobileTab('preview')}
-                className={`flex-1 text-sm py-2 rounded-md text-center ${mobileTab === 'preview' ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground'}`}
+                className={`flex-1 text-sm py-2 rounded-lg text-center transition-all duration-200 ${mobileTab === 'preview' ? 'bg-background text-foreground font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Preview
               </button>
@@ -376,7 +412,43 @@ function PlayGround() {
           </div>
         )}
         {/* Chat Section */}
-        {!panelStates.chat.minimized && (
+        {!panelStates.chat.minimized && screenSize !== 'mobile' && (
+          <>
+            <div style={{ width: panelStates.chat.expanded ? '40%' : `${chatWidth}px` }}>
+              <ChatSection
+                messages={messages}
+                onSend={(input: string) => SendMessage(input)}
+                loading={loading}
+                isMinimized={panelStates.chat.minimized}
+                isExpanded={panelStates.chat.expanded}
+                onToggle={() => togglePanel('chat')}
+                onExpand={() => expandPanel('chat')}
+                onMinimize={() => resetPanel('chat')}
+              />
+            </div>
+
+            {/* Resize Handle */}
+            {!panelStates.chat.expanded && (
+              <div
+                onMouseDown={handleMouseDown}
+                className={`w-1 bg-border/50 hover:bg-border hover:w-1.5 cursor-col-resize transition-all duration-150 relative group ${isResizing ? 'bg-primary w-1.5' : ''
+                  }`}
+              >
+                <div className="absolute inset-y-0 -left-1 -right-1" />
+                {/* Visual indicator on hover */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-0.5">
+                    <div className="w-0.5 h-8 bg-muted-foreground rounded-full" />
+                    <div className="w-0.5 h-8 bg-muted-foreground rounded-full" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Mobile Chat Section */}
+        {!panelStates.chat.minimized && screenSize === 'mobile' && mobileTab === 'chat' && (
           <ChatSection
             messages={messages}
             onSend={(input: string) => SendMessage(input)}
@@ -391,7 +463,7 @@ function PlayGround() {
 
         {/* Minimized Chat Panel (hidden on mobile to keep Preview clean) */}
         {panelStates.chat.minimized && screenSize !== 'mobile' && (
-          <div className="w-12 h-full bg-background border-r border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => togglePanel('chat')}>
+          <div className="w-12 h-full bg-card/50 border-r border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-card transition-all duration-200" onClick={() => togglePanel('chat')}>
             <div className="writing-mode-vertical text-xs font-medium text-muted-foreground">Chat</div>
           </div>
         )}
@@ -438,7 +510,7 @@ function PlayGround() {
 
         {/* Minimized Settings Panel (hidden on mobile) */}
         {panelStates.settings.minimized && selectedElement && screenSize !== 'mobile' && (
-          <div className="w-12 h-full bg-background border-l border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => togglePanel('settings')}>
+          <div className="w-12 h-full bg-card/50 border-l border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-card transition-all duration-200" onClick={() => togglePanel('settings')}>
             <div className="writing-mode-vertical text-xs font-medium text-muted-foreground">Settings</div>
           </div>
         )}

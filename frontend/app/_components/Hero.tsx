@@ -92,7 +92,7 @@ function Hero() {
 
   return (
     <div className='flex flex-col items-center justify-center min-h-[80vh] py-12 px-4 bg-background'>
-      
+
       {/* Badge / Banner */}
       <div className='mb-8 flex items-center gap-3 px-5 py-2.5 rounded-full border border-border bg-background hover:border-border/80 transition-colors cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-500'>
         <span className='text-xs font-bold text-foreground'>WEBYRIX CONF 2026</span>
@@ -114,29 +114,29 @@ function Hero() {
 
       {/* input box */}
       <div className='w-full max-w-4xl mt-12 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-200'>
-        <div className='rounded-3xl border-2 border-border bg-card/30 backdrop-blur-sm p-6 transition-all focus-within:border-muted-foreground/50'>
-          <textarea 
+        <div className='gradient-border overflow-hidden rounded-xl bg-secondary/50 p-1'>
+          <textarea
             placeholder='Describe your design idea...'
             value={userInput}
             onChange={(event) => setUserInput(event.target.value)}
-            className='w-full bg-transparent focus:outline-none resize-none text-lg text-foreground placeholder:text-muted-foreground h-20 mb-4'
+            className='w-full bg-transparent focus:outline-none resize-none text-lg text-foreground placeholder:text-muted-foreground min-h-[120px] p-4'
           />
-          <div className='flex justify-between items-center pt-2'>
-            <Button variant={'ghost'} size="icon" className='text-muted-foreground hover:text-foreground hover:bg-accent'>
+          <div className='flex justify-between items-center px-4 pb-4'>
+            <Button variant={'ghost'} size="icon" className='text-muted-foreground hover:text-foreground hover:bg-white/10'>
               <ImagePlus className='h-5 w-5' />
             </Button>
-            
+
             {!user ? (
               <SignInButton mode='modal' forceRedirectUrl={'/workspace'}>
-                <Button disabled={!userInput} className="rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80 px-12 py-5 font-medium text-sm h-auto"> 
+                <Button disabled={!userInput} className="rounded-xl bg-white text-black hover:bg-white/90 px-8 py-4 font-medium text-sm h-auto shadow-lg shadow-white/10 transition-all hover:scale-105 active:scale-95">
                   <ArrowUp className='h-5 w-5' />
                 </Button>
               </SignInButton>
             ) : (
-              <Button 
-                disabled={!userInput || loading} 
-                onClick={CreateNewProject} 
-                className="rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80 px-12 py-5 font-medium text-sm h-auto"
+              <Button
+                disabled={!userInput || loading}
+                onClick={CreateNewProject}
+                className="rounded-xl bg-white text-black hover:bg-white/90 px-8 py-4 font-medium text-sm h-auto shadow-lg shadow-white/10 transition-all hover:scale-105 active:scale-95"
               >
                 {loading ? <Loader2Icon className='animate-spin h-5 w-5' /> : <ArrowUp className='h-5 w-5' />}
               </Button>
@@ -149,8 +149,8 @@ function Hero() {
       <div className='flex flex-wrap justify-center items-center mt-8 gap-3 animate-in fade-in slide-in-from-bottom-20 duration-1000 delay-300'>
         <span className='text-sm text-muted-foreground'>Need inspiration?</span>
         {suggestions.map((suggestion, index) => (
-          <button 
-            key={index} 
+          <button
+            key={index}
             onClick={() => setUserInput(suggestion.prompt)}
             className='flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background hover:border-muted-foreground/50 hover:bg-card text-sm text-foreground transition-all duration-200'
           >

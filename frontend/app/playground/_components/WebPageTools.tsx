@@ -81,31 +81,31 @@ function WebPageTools({ selectedScreenSize, setSelectedScreenSize, generatedCode
   }
 
   return (
-    <div className='p-2 mt-3 rounded-xl w-full flex flex-col sm:flex-row justify-between gap-3 bg-card border border-border shadow-sm'>
-      <div className='flex gap-1 justify-center bg-muted/50 p-1 rounded-lg'>
+    <div className='glass flex items-center justify-between gap-3 border-t border-border/50 px-4 py-3'>
+      <div className='flex gap-1 rounded-lg border border-border/50 bg-secondary/30 p-1'>
         <Button variant={'ghost'}
-          size="sm"
-          className={`h-8 px-3 transition-all rounded-md ${selectedScreenSize == 'web' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
-          onClick={() => setSelectedScreenSize('web')}><Monitor className='h-4 w-4 mr-1' /><span className="text-xs">Web</span></Button>
+          size="icon"
+          className={`h-8 w-8 transition-all duration-200 rounded-md ${selectedScreenSize == 'web' ? 'bg-foreground text-background hover:bg-foreground hover:text-background' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+          onClick={() => setSelectedScreenSize('web')}><Monitor className='h-4 w-4' /></Button>
         <Button variant={'ghost'}
-          size="sm"
-          className={`h-8 px-3 transition-all rounded-md ${selectedScreenSize == 'mobile' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
-          onClick={() => setSelectedScreenSize('mobile')}><Tablet className='h-4 w-4 mr-1' /><span className="text-xs">Mobile</span></Button>
+          size="icon"
+          className={`h-8 w-8 transition-all duration-200 rounded-md ${selectedScreenSize == 'mobile' ? 'bg-foreground text-background hover:bg-foreground hover:text-background' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+          onClick={() => setSelectedScreenSize('mobile')}><Tablet className='h-4 w-4' /></Button>
       </div>
-      <div className='flex gap-2 justify-center flex-wrap items-center'>
-        <Button variant={'outline'} size="sm" onClick={() => ViewInNewTab()} className='text-xs h-9 bg-transparent border-input text-muted-foreground hover:text-foreground hover:bg-accent'>
-          <span className='hidden sm:inline mr-2'>Preview</span>
-          <SquareArrowOutUpRightIcon className='h-3.5 w-3.5' />
+      <div className='flex gap-2 items-center'>
+        <Button variant={'outline'} size="sm" onClick={() => ViewInNewTab()} className='text-xs h-8 bg-transparent border-border/50 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200'>
+          <SquareArrowOutUpRightIcon className='h-3.5 w-3.5 sm:mr-1.5' />
+          <span className='hidden sm:inline'>Open</span>
         </Button>
         <ViewCodeBlock code={finalCode}>
-          <Button size="sm" variant="secondary" className='text-xs h-9'>
-            <span className='hidden sm:inline mr-2'>Source</span>
-            <Code2Icon className='h-3.5 w-3.5' />
+          <Button size="sm" variant="secondary" className='text-xs h-8 transition-all duration-200'>
+            <Code2Icon className='h-3.5 w-3.5 sm:mr-1.5' />
+            <span className='hidden sm:inline'>Code</span>
           </Button>
         </ViewCodeBlock>
-        <Button onClick={downloadCode} size="sm" className='text-xs h-9'>
-          <span className='hidden sm:inline mr-2'>Export</span>
+        <Button onClick={downloadCode} size="sm" className='text-xs h-8 gap-1.5 bg-foreground text-background hover:bg-foreground/90 hover:shadow-lg hover:shadow-foreground/10 transition-all duration-200'>
           <Download className='h-3.5 w-3.5' />
+          <span>Export</span>
         </Button>
       </div>
     </div>
