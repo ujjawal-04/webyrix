@@ -59,14 +59,7 @@ function Provider({ children }: { children: React.ReactNode }) {
   return (
     <UserDetailContext.Provider value={{ userDetail, setUserDetail, refreshCredits }}>
       <OnSaveContext.Provider value={{ onSaveData, setOnSaveData }}>
-        {isLoaded && user && !userDetail ? (
-          <div className="h-screen w-screen flex items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              <p className="text-sm text-muted-foreground animate-pulse">Initializing your workspace...</p>
-            </div>
-          </div>
-        ) : children}
+        {children}
       </OnSaveContext.Provider>
     </UserDetailContext.Provider>
   );
