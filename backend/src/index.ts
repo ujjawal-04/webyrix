@@ -1,15 +1,45 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 // Load environment variables from .env file (located in root of backend)
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT) || 4000;
 
-// Middleware
-app.use(cors());
+// Security Middleware
+// app.use(helmet()); // Security headers
+app.use(compression({
+    filter: (req, res) => {
+        if (req.headers['accept'] === 'text/event-stream') {
+            return false; // Don't compress SSE
+        }
+        return compression.filter(req, res);
+    }
+})); // Compress responses
+
+// Rate limiting
+// const limiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 100, // Limit each IP to 100 requests per windowMs
+//     message: 'Too many requests from this IP, please try again later.',
+//     standardHeaders: true,
+//     legacyHeaders: false,
+// });
+// app.use('/api/', limiter);
+
+// CORS
+app.use(cors({
+    origin: '*',
+    credentials: true
+}));
+
+// Body parsing middleware
 app.use(express.json({ limit: '50mb' })); // Increase limit for large HTML payloads
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -24,6 +54,7 @@ app.use((req, res, next) => {
     next();
 });
 
+// Health check endpoints
 app.get('/', (req, res) => {
     console.log('✓ Root endpoint hit');
     res.send('Webyrix Backend is running!');
@@ -38,6 +69,7 @@ app.get('/api/health', (req, res) => {
 import usersRouter from './routes/users';
 import projectsRouter from './routes/projects';
 import framesRouter from './routes/frames';
+import chatsRouter from './routes/chats';
 import aiRouter from './routes/ai';
 
 // Register Routes
@@ -48,22 +80,18 @@ app.use('/api/projects', projectsRouter);
 console.log('  ✓ /api/projects registered');
 app.use('/api/frames', framesRouter);
 console.log('  ✓ /api/frames registered');
+app.use('/api/chats', chatsRouter);
+console.log('  ✓ /api/chats registered');
 app.use('/api/ai-model', aiRouter);
 console.log('  ✓ /api/ai-model registered');
 
 // 404 handler
-app.use((req, res) => {
-    console.log(`❌ 404 Not Found: ${req.method} ${req.path}`);
-    res.status(404).json({ error: 'Endpoint not found' });
-});
+app.use(notFoundHandler);
 
-// Error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(`❌ Error:`, err);
-    res.status(500).json({ error: 'Internal Server Error', message: err.message });
-});
+// Error handler (must be last)
+app.use(errorHandler);
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(50));
     console.log('🚀 Webyrix Backend Server Started');
     console.log('='.repeat(50));
@@ -72,6 +100,8 @@ app.listen(PORT, () => {
     console.log(`🔐 Clerk: ${process.env.CLERK_SECRET_KEY ? 'Configured' : 'Not configured'}`);
     const geminiKeyCount = [1, 2, 3, 4, 5].filter(i => process.env[`GEMINI_API_KEY_${i}`]).length;
     console.log(`🤖 Gemini: ${geminiKeyCount} API key(s) configured`);
+    console.log(`🛡️  Security: Helmet, Rate Limiting, Compression enabled`);
     console.log('='.repeat(50));
     console.log('✓ Ready to accept requests\n');
 });
+

@@ -78,6 +78,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('Transfer-Encoding', 'chunked');
+        res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering for Nginx
 
         // Try current key, retry with next key only on rate limit
         const maxRetries = GEMINI_KEYS.length;
@@ -122,6 +123,11 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
                             }]
                         });
                         res.write(`data: ${data}\n\n`);
+                        // @ts-ignore - flush() is added by compression middleware
+                        if (typeof res.flush === 'function') {
+                            // @ts-ignore
+                            res.flush();
+                        }
                     }
                 }
 
