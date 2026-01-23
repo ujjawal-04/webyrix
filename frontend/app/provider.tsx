@@ -31,19 +31,45 @@ function Provider({ children }: { children: React.ReactNode }) {
         }
       })
       console.log(res.data);
-      setUserDetail(res.data?.user);
+      setUserDetail(res.data?.data);
     } catch (error) {
       console.error('Create user failed:', error)
     }
   }
 
-  return <>
-    <UserDetailContext.Provider value={{ userDetail, setUserDetail }}>
+  const refreshCredits = async () => {
+    if (!userDetail) return; // Wait for user to be created/loaded
+    try {
+      const token = await getToken();
+      const res = await axios.get(process.env.NEXT_PUBLIC_API_URL + '/api/users/credits', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (res.data?.data) {
+        setUserDetail((prev: any) => ({ ...prev, credits: res.data.data.credits }));
+      }
+    } catch (error: any) {
+      if (error.response?.status !== 404) {
+        console.error('Refresh credits failed:', error);
+      }
+    }
+  };
+
+  return (
+    <UserDetailContext.Provider value={{ userDetail, setUserDetail, refreshCredits }}>
       <OnSaveContext.Provider value={{ onSaveData, setOnSaveData }}>
-        {children}
+        {isLoaded && user && !userDetail ? (
+          <div className="h-screen w-screen flex items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="text-sm text-muted-foreground animate-pulse">Initializing your workspace...</p>
+            </div>
+          </div>
+        ) : children}
       </OnSaveContext.Provider>
     </UserDetailContext.Provider>
-  </>
+  );
 }
 
 export default Provider

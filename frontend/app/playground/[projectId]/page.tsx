@@ -13,6 +13,7 @@ import ElementSettingSection from '../_components/ElementSettingSection';
 import ImageSettingSection from '../_components/ImageSettingsSection';
 
 export type Messages = {
+  id?: number;
   role: string;
   content: string;
 };
@@ -24,84 +25,47 @@ export type Frame = {
   chatMessages: Messages[];
 };
 
-const Prompt = `userInput: {userInput}
+const Prompt = `User Request: {userInput}
+Project Context: {projectDescription}
 
-You are a senior web developer at a top design agency. Generate COMPLETE, PROFESSIONAL, FULL-LENGTH websites with MULTIPLE sections and RICH content.
+You are a Legendary UI/UX Designer and Senior Front-end Architect. Your mission is to generate a visual masterpiece that is modern, professional, and flawlessly responsive.
 
-CRITICAL: Generate COMPREHENSIVE websites, not minimal examples. Each website should be FULL-FEATURED with AT LEAST 6-8 SECTIONS.
+### 1. DYNAMIC SCOPE ADAPTATION (CRITICAL)
+- **COMPONENT MODE**: If the user asks for a specific item (e.g., "Signup Form", "Profile Card", "Navigation Bar"), generate **ONLY** that item. Wrap it in a clean, centered container with a subtle shadow to show it off professionally.
+- **PAGE MODE**: If the user asks for a "Website" or "Landing Page", generate a comprehensive 8-12 section experience (Nav, Hero, Social Proof, Core Features, Detailed Benefits, Case Study/Gallery, Pricing/Plans, FAQ, High-Conversion CTA, Footer).
 
-RULES:
-1. If user asks to build/create/generate a website → Generate COMPLETE, FULL-LENGTH HTML code
-2. If user says "hi" or asks a question → Respond conversationally
+### 2. ADAPTIVE DESIGN & CREATIVE FREEDOM
+- **Creative Color Theory**: Do NOT use default or generic color palettes. Select a sophisticated, harmonized palette tailored specifically to the user request and project context. Use vibrant accents, professionally balanced neutrals, and deep accessibility-compliant contrasts.
+- **Visual Personality**: Match the "vibe" of the input. (e.g., High-end Law Firm = Elegant/Traditional; Modern AI Start-up = Futuristic/Glow; Wellness App = Serene/Natural).
+- **The "High-End" Depth**: Apply multi-layered shadows (\`shadow-2xl\`), soft borders (\`border border-zinc-200/50\` or theme-balanced glassmorphism), and generous padding (\`py-24 md:py-32\`).
 
-WHEN GENERATING CODE:
+### 3. MASTER-CLASS ARCHITECTURE
+- **Typography Mastery**: Strictly use **Inter**. Use bold weights (\`font-extrabold\`) for impact and tight tracking (\`tracking-tight\`) on primary headings.
+- **Micro-Interactions**: Every interactive element MUST have: \`transition-all duration-300 hover:scale-[1.03] active:scale-95\`.
+- **Images (MANDATORY)**: Always include high-fidelity Unsplash images: \`https://images.unsplash.com/photo-{ID}?auto=format&fit=crop&q=80&w=1200\`. Match the industry perfectly.
+- **Icons**: Use **FontAwesome 6** (\`fa-solid\`).
 
-Required CDN Links (add at top of body):
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.js"></script>
+### 4. PRODUCTION-READY COPY
+- **No Fillers**: Write actual, persuasive copy. Use "Value-First" headlines. 
+- **Clarity**: Ensure the user experience is intuitive, clean, and professional.
 
-MANDATORY SECTIONS (Include ALL of these):
-1. Navigation Bar: Sticky header with logo, 5-6 menu links, CTA button, mobile hamburger menu
-2. Hero Section: Full-width with large heading (text-5xl md:text-7xl), subheading, 2 CTA buttons, background gradient or image
-3. Features Section: Grid of 6 feature cards with icons, titles, descriptions (grid-cols-1 md:grid-cols-2 lg:grid-cols-3)
-4. About/How It Works: 2-3 column layout with images and detailed text explaining the product/service
-5. Testimonials: 3-6 customer testimonials with avatars, names, roles, quotes
-6. Stats/Numbers: 4 impressive statistics with big numbers and labels
-7. Pricing/Plans: 3 pricing tiers with features list, prices, CTA buttons (if applicable)
-8. FAQ Section: 6-8 frequently asked questions with Flowbite accordion component
-9. Final CTA: Eye-catching section with gradient background, heading, subtext, CTA button
-10. Footer: Multi-column (4 columns) with company info, product links, resources, social icons, newsletter signup, copyright
+### TECHNICAL SPECIFICATIONS:
+- Frameworks: **Tailwind CSS**, **Flowbite**, **Inter Font**.
+- **External CDNs (Include at the very top of <body>)**:
+  \`\`\`html
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.js"></script>
+  \`\`\`
 
-Design Standards:
-- Main container: font-['Inter'] antialiased
-- Professional colors: blue-600, indigo-600, purple-600, emerald-600, slate-800
-- GENEROUS spacing: py-20 md:py-32 for sections (make it spacious!)
-- Container: max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
-- Cards: bg-white shadow-xl rounded-xl p-8 hover:shadow-2xl transition-all duration-300
-- Buttons: px-8 py-4 text-lg rounded-lg font-semibold with hover effects
-- Headings: text-4xl md:text-6xl font-bold for main headings, text-3xl md:text-4xl for section headings
-- Body text: text-lg leading-relaxed text-gray-600
-- Fully responsive with sm:, md:, lg:, xl: breakpoints
+### OUTPUT RULES:
+- Output **ONLY** the HTML code within \`\`\`html and \`\`\` fences.
+- No conversational text or explanations.
+- The result must be visually "stunning" and production-ready upon render.
 
-Visual Quality:
-- Use semantic HTML: <header>, <nav>, <main>, <section>, <footer>
-- FontAwesome 6 icons: <i class="fa-solid fa-icon-name text-3xl"></i>
-- Images: Use varied Unsplash URLs with different photo IDs
-  - https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80
-  - https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80
-  - https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=80
-- Add gradient backgrounds: bg-gradient-to-r from-blue-600 to-purple-600
-- Smooth transitions on all interactive elements
-- Professional typography with cl          ear hierarchy
-- Good contrast and readability
-
-Content Requirements:
-- Write REALISTIC, DETAILED content (minimum 2-3 sentences per description)
-- NO Lorem Ipsum - use actual relevant content
-- Feature descriptions should be 40-60 words each
-- Testimonials should be 30-50 words with realistic names and roles
-- FAQ answers should be comprehensive (50-80 words)
-- Make content specific to the website type requested
-
-Interactive Elements:
-- Working mobile menu toggle (Flowbite navbar component)
-- Smooth scroll navigation (href="#section-id")
-- Hover effects on all buttons and cards
-- Accordion for FAQ section (Flowbite accordion)
-- All forms should have proper styling and placeholders
-
-Output Format:
-- Start with \`\`\`html and end with \`\`\`
-- Only include <body> content (no <head> or <title>)
-- No explanations before or after code
-- Generate AT LEAST 400-600 lines of HTML for a complete website
-- Each section should be substantial with real content
-
-REMEMBER: Generate FULL, COMPLETE, COMPREHENSIVE websites with ALL sections listed above. Quality over brevity!
-`;
+GOAL: Build a result that earns a "Site of the Day" nomination. Excellence is the only option. 🚀`;
 
 function PlayGround() {
   const { projectId } = useParams();
@@ -110,6 +74,7 @@ function PlayGround() {
   const { getToken } = useAuth();
 
   const [frameDetail, setFrameDetail] = useState<Frame>();
+  const [projectDetail, setProjectDetail] = useState<any>();
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Messages[]>([]);
   const [generatedCode, setGeneratedCode] = useState<string>('');
@@ -193,8 +158,21 @@ function PlayGround() {
   };
 
   useEffect(() => {
-    frameId && GetFrameDetails();
-  }, [frameId]);
+    if (projectId) GetProjectDetails();
+    if (frameId) GetFrameDetails();
+  }, [frameId, projectId]);
+
+  const GetProjectDetails = async () => {
+    try {
+      const token = await getToken();
+      const result = await axios.get(process.env.NEXT_PUBLIC_API_URL + `/api/projects/${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProjectDetail(result.data?.data);
+    } catch (error) {
+      console.error("Error fetching project details:", error);
+    }
+  };
 
   const GetFrameDetails = async () => {
     try {
@@ -203,28 +181,31 @@ function PlayGround() {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log("Frame Details:", result.data);
-      setFrameDetail(result.data);
+      const data = result.data?.data;
+      setFrameDetail(data);
 
-      const designCode = result.data?.designCode;
+      const designCode = data?.designCode;
 
       // ✅ Check if designCode exists before processing
       if (designCode) {
-        const index = designCode.indexOf('```html');
-        if (index !== -1) {
-          const formattedCode = designCode.slice(index + 7);
-          setGeneratedCode(formattedCode);
-        } else {
-          // If no code fence, use the code as-is
-          setGeneratedCode(designCode);
+        let formattedCode = designCode;
+        if (designCode.includes('```html')) {
+          const index = designCode.indexOf('```html');
+          formattedCode = designCode.slice(index + 7);
+          const endIndex = formattedCode.indexOf('```');
+          if (endIndex !== -1) {
+            formattedCode = formattedCode.slice(0, endIndex);
+          }
         }
+        setGeneratedCode(formattedCode.trim());
       }
 
       // Auto-send first message if exists
-      if (result.data?.chatMessages?.length === 1) {
-        const userMsg = result.data?.chatMessages[0].content;
+      if (data?.chatMessages?.length === 1) {
+        const userMsg = data?.chatMessages[0].content;
         SendMessage(userMsg);
-      } else if (result.data?.chatMessages) {
-        setMessages(result.data?.chatMessages);
+      } else if (data?.chatMessages) {
+        setMessages(data?.chatMessages);
       }
     } catch (error) {
       console.error("Error fetching frame details:", error);
@@ -244,14 +225,19 @@ function PlayGround() {
 
     try {
       const token = await getToken();
+      const finalPrompt = Prompt
+        .replace('{userInput}', userInput)
+        .replace('{projectDescription}', projectDetail?.description || 'A professional web application');
+
       const result = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/ai-model', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'text/event-stream'
         },
         body: JSON.stringify({
-          messages: [{ role: "user", content: Prompt?.replace('{userInput}', userInput) }]
+          messages: [{ role: "user", content: finalPrompt }]
         }),
       });
 
@@ -261,71 +247,97 @@ function PlayGround() {
       let aiResponse = '';
       let generatedHtmlCode = '';
       let isCode = false;
+      let buffer = '';
+
+      // Create a temporary message for streaming
+      setMessages((prev: any) => [...prev, { role: 'assistant', content: '' }]);
 
       while (reader) {
-        const { done, value } = await reader?.read();
+        const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
+        buffer += decoder.decode(value, { stream: true });
 
-        // Parse SSE format (data: {...})
-        const lines = chunk.split('\n');
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const jsonStr = line.slice(6); // Remove 'data: ' prefix
-              if (jsonStr.trim() === '[DONE]') continue;
+          const trimmedLine = line.trim();
+          if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
 
-              const data = JSON.parse(jsonStr);
-              const content = data.choices?.[0]?.delta?.content || '';
+          const jsonStr = trimmedLine.slice(6);
+          if (jsonStr === '[DONE]') continue;
 
-              if (content) {
-                aiResponse += content;
+          try {
+            const data = JSON.parse(jsonStr);
+            const content = data.choices?.[0]?.delta?.content || '';
 
-                // Detect code fences
-                if (!isCode && aiResponse.includes('```html')) {
-                  isCode = true;
-                  const index = aiResponse.indexOf('```html') + 7;
-                  generatedHtmlCode = aiResponse.slice(index);
+            if (content) {
+              aiResponse += content;
+
+              // Detect code fences
+              if (!isCode && aiResponse.includes('```html')) {
+                isCode = true;
+                const index = aiResponse.indexOf('```html') + 7;
+                generatedHtmlCode = aiResponse.slice(index);
+                setGeneratedCode(generatedHtmlCode);
+
+                // Update chat to indicate we started generating code
+                setMessages((prev: any) => {
+                  const newMessages = [...prev];
+                  if (newMessages.length > 0) {
+                    newMessages[newMessages.length - 1].content = 'Generating your website...';
+                  }
+                  return newMessages;
+                });
+              } else if (isCode) {
+                // If we are in code block, check for end
+                if (aiResponse.includes('```', aiResponse.indexOf('```html') + 7)) {
+                  const startIndex = aiResponse.indexOf('```html') + 7;
+                  const endIndex = aiResponse.lastIndexOf('```');
+                  generatedHtmlCode = aiResponse.slice(startIndex, endIndex);
                   setGeneratedCode(generatedHtmlCode);
-                } else if (isCode && !aiResponse.includes('```\n') && !aiResponse.endsWith('```')) {
+                } else {
                   generatedHtmlCode += content;
                   setGeneratedCode(generatedHtmlCode);
-                } else if (isCode && (aiResponse.includes('```\n') || aiResponse.endsWith('```'))) {
-                  // End of code block
-                  const endIndex = generatedHtmlCode.lastIndexOf('```');
-                  if (endIndex !== -1) {
-                    generatedHtmlCode = generatedHtmlCode.slice(0, endIndex);
-                    setGeneratedCode(generatedHtmlCode);
-                  }
                 }
+              } else {
+                // Conversational text streaming
+                setMessages((prev: any) => {
+                  const newMessages = [...prev];
+                  if (newMessages.length > 0) {
+                    newMessages[newMessages.length - 1].content = aiResponse;
+                  }
+                  return newMessages;
+                });
               }
-            } catch (e) {
-              // Skip invalid JSON
-              console.log('Skipping invalid JSON chunk');
             }
+          } catch (e) {
+            console.log('Error parsing JSON chunk:', e);
           }
         }
       }
 
-      // Save the final code
+      // Finalize the state after streaming ends
       if (isCode && generatedHtmlCode) {
         await saveGeneratedCode(generatedHtmlCode);
-      } else {
+        setMessages((prev: any) => {
+          const newMessages = [...prev];
+          if (newMessages.length > 0) {
+            newMessages[newMessages.length - 1].content = 'Your code is ready!';
+          }
+          return newMessages;
+        });
+      } else if (isCode) {
+        // Fallback for code that ended but was somehow incorrectly sliced
         await saveGeneratedCode(aiResponse);
-      }
-
-      // after streaming ends
-      if (!isCode) {
-        setMessages((prev: any) => [
-          ...prev,
-          { role: 'assistant', content: aiResponse }
-        ]);
-      } else {
-        setMessages((prev: any) => [
-          ...prev,
-          { role: 'assistant', content: 'Your code is ready!' }
-        ]);
+        setMessages((prev: any) => {
+          const newMessages = [...prev];
+          if (newMessages.length > 0) {
+            newMessages[newMessages.length - 1].content = 'Your code is ready!';
+          }
+          return newMessages;
+        });
       }
 
     } catch (error) {
@@ -379,9 +391,38 @@ function PlayGround() {
     }
   }
 
+  const handleDeleteMessage = async (messageId: number) => {
+    try {
+      const token = await getToken();
+      await axios.delete(process.env.NEXT_PUBLIC_API_URL + `/api/chats/${messageId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      toast.success('Message deleted');
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast.error("Failed to delete message");
+    }
+  }
+
+  const handleClearChat = async () => {
+    try {
+      const token = await getToken();
+      await axios.delete(process.env.NEXT_PUBLIC_API_URL + `/api/chats/frame/${frameId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMessages([]);
+      toast.success('Chat cleared');
+    } catch (error) {
+      console.error("Error clearing chat:", error);
+      toast.error("Failed to clear chat");
+    }
+  }
+
   return (
     <div className='h-screen flex flex-col bg-gradient-to-br from-background via-background to-card/20'>
       <PlaygroundHeader
+        projectId={projectId as string}
         onRefresh={handleRefresh}
         onUndo={() => toast.info('Undo functionality coming soon!')}
         onRedo={() => toast.info('Redo functionality coming soon!')}
@@ -418,7 +459,12 @@ function PlayGround() {
               <ChatSection
                 messages={messages}
                 onSend={(input: string) => SendMessage(input)}
+                onDeleteMessage={handleDeleteMessage}
+                onClearChat={handleClearChat}
                 loading={loading}
+                fullPrompt={Prompt
+                  .replace('{userInput}', '...')
+                  .replace('{projectDescription}', projectDetail?.description || 'A professional web application')}
                 isMinimized={panelStates.chat.minimized}
                 isExpanded={panelStates.chat.expanded}
                 onToggle={() => togglePanel('chat')}
@@ -452,7 +498,12 @@ function PlayGround() {
           <ChatSection
             messages={messages}
             onSend={(input: string) => SendMessage(input)}
+            onDeleteMessage={handleDeleteMessage}
+            onClearChat={handleClearChat}
             loading={loading}
+            fullPrompt={Prompt
+              .replace('{userInput}', '...')
+              .replace('{projectDescription}', projectDetail?.description || 'A professional web application')}
             isMinimized={panelStates.chat.minimized}
             isExpanded={panelStates.chat.expanded}
             onToggle={() => togglePanel('chat')}

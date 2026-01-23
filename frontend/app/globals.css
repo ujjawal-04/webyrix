@@ -189,6 +189,48 @@
   pointer-events: none;
 }
 
+.hero-gradient-border {
+  position: relative;
+}
+
+.hero-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #a855f7, #f472b6, #fb923c, #a855f7);
+  background-size: 200% 200%;
+  animation: gradient-shift 4s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+
+@keyframes glow-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px oklch(0.6 0.25 300 / 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 40px oklch(0.6 0.25 300 / 0.25);
+  }
+}
+
+.input-glow {
+  box-shadow: 0 0 20px oklch(0.6 0.25 300 / 0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-glow:focus-within {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
 /* Custom utilities for panel controls */
 .writing-mode-vertical {
   writing-mode: vertical-rl;

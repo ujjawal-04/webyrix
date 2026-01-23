@@ -1,13 +1,35 @@
 import React, { useState } from 'react';
 import { Messages } from '../[projectId]/page';
 import { Button } from '@/components/ui/button';
-import { ArrowUp, MessageSquare } from 'lucide-react';
+import { ArrowUp, MessageSquare, Trash2, Eraser, BookOpen } from 'lucide-react';
 import PanelHeader from './PanelHeader';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 type Props = {
   messages: Messages[];
   onSend: (input: string) => void | Promise<void>;
+  onDeleteMessage: (messageId: number) => void | Promise<void>;
+  onClearChat: () => void | Promise<void>;
   loading: boolean;
+  fullPrompt: string;
   isMinimized: boolean;
   isExpanded: boolean;
   onToggle: () => void;
@@ -18,12 +40,15 @@ type Props = {
 function ChatSection({
   messages,
   onSend,
+  onDeleteMessage,
+  onClearChat,
   loading,
   isMinimized,
   isExpanded,
   onToggle,
   onExpand,
-  onMinimize
+  onMinimize,
+  fullPrompt
 }: Props) {
   const [input, setInput] = useState<string>('');
 
@@ -36,15 +61,68 @@ function ChatSection({
   return (
     <div className={`${isMinimized ? 'w-12' : 'w-full'} h-full min-h-0 flex flex-col panel-transition bg-card/50 border-r border-border/50`}>
 
-      <PanelHeader
-        title="Chat"
-        isMinimized={isMinimized}
-        isExpanded={isExpanded}
-        onToggle={onToggle}
-        onExpand={onExpand}
-        onMinimize={onMinimize}
-        icon={<MessageSquare className="h-3.5 w-3.5" />}
-      />
+      <div className="flex items-center justify-between border-b border-border/50 pr-2">
+        <div className="flex-1">
+          <PanelHeader
+            title="Chat"
+            isMinimized={isMinimized}
+            isExpanded={isExpanded}
+            onToggle={onToggle}
+            onExpand={onExpand}
+            onMinimize={onMinimize}
+            icon={<MessageSquare className="h-3.5 w-3.5" />}
+          />
+        </div>
+        {!isMinimized && messages.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors" title="Clear Chat">
+                <Eraser className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-background border-border">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                  <Trash2 className="h-5 w-5" />
+                  Clear Chat History
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-muted-foreground">
+                  Are you sure you want to delete all messages in this conversation? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="bg-secondary hover:bg-secondary/80 border-0">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onClearChat} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Clear All
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        {!isMinimized && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors" title="View AI Context">
+                <BookOpen className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl bg-background border-border max-h-[80vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  AI Architect Context
+                </DialogTitle>
+                <DialogDescription>
+                  The specific rules and metadata currently guiding the AI's generation logic.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-4 flex-1 overflow-y-auto rounded-lg bg-secondary/30 p-4 font-mono text-[11px] leading-relaxed whitespace-pre-wrap border border-border/50">
+                {fullPrompt || "Initializing context..."}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
 
       {!isMinimized && (
         <>
@@ -68,12 +146,21 @@ function ChatSection({
                 >
 
                   <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
+                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed relative group/msg ${msg.role === 'user'
                       ? 'bg-[#1F1F1F] text-white border border-white/10 shadow-lg shadow-black/20'
                       : 'bg-secondary text-foreground border border-white/10 shadow-md'
                       }`}
                   >
                     {msg.content}
+                    {msg.id && (
+                      <button
+                        onClick={() => onDeleteMessage(msg.id!)}
+                        className={`absolute -top-2 ${msg.role === 'user' ? '-left-2' : '-right-2'} p-1.5 bg-background border border-border rounded-full text-muted-foreground hover:text-destructive opacity-0 group-hover/msg:opacity-100 transition-opacity shadow-sm z-10`}
+                        title="Delete message"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))

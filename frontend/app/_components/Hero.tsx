@@ -40,7 +40,7 @@ function Hero() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { has, getToken } = useAuth();
-  const { userDetail, setUserDetail } = useContext(UserDetailContext);
+  const { userDetail, setUserDetail, refreshCredits } = useContext(UserDetailContext);
 
   const hasUnlimitedAccess = has && has({ plan: 'unlimited' });
 
@@ -78,10 +78,7 @@ function Hero() {
       toast.success('Project created');
       //Navigate to playgrund
       router.push(`/playground/${projectId}?frameId=${frameId}`);
-      setUserDetail((prev: any) => ({
-        ...prev,
-        credits: prev?.credits! - 1
-      }));
+      refreshCredits();
       setLoading(false);
     } catch (e) {
       toast.error('Internal Server Error');
@@ -114,7 +111,7 @@ function Hero() {
 
       {/* input box */}
       <div className='w-full max-w-4xl mt-12 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-200'>
-        <div className='gradient-border overflow-hidden rounded-xl bg-secondary/50 p-1'>
+        <div className='hero-gradient-border rounded-xl bg-secondary/50 input-glow transition-all duration-300 relative'>
           <textarea
             placeholder='Describe your design idea...'
             value={userInput}

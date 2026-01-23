@@ -4,7 +4,8 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { OnSaveContext } from '@/context/OnSaveContext';
 import Link from 'next/link';
-import { Save, RotateCcw, Undo2, Redo2 } from 'lucide-react';
+import { Save, RotateCcw, Undo2, Redo2, Settings } from 'lucide-react';
+import ProjectSettingsDialog from './ProjectSettingsDialog';
 import {
   Tooltip,
   TooltipContent,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 
 type Props = {
+  projectId: string;
   onRefresh?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -20,7 +22,7 @@ type Props = {
   canRedo?: boolean;
 };
 
-function PlaygroundHeader({ onRefresh, onUndo, onRedo, canUndo = false, canRedo = false }: Props) {
+function PlaygroundHeader({ projectId, onRefresh, onUndo, onRedo, canUndo = false, canRedo = false }: Props) {
 
   const { onSaveData, setOnSaveData } = useContext(OnSaveContext);
 
@@ -87,6 +89,9 @@ function PlaygroundHeader({ onRefresh, onUndo, onRedo, canUndo = false, canRedo 
               <TooltipContent side="bottom" className="text-xs">Refresh Preview</TooltipContent>
             </Tooltip>
           )}
+
+          {/* Project Settings */}
+          <ProjectSettingsDialog projectId={projectId} />
 
           {/* Save Button */}
           <Tooltip>
