@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { SignInButton, useAuth, useUser } from '@clerk/nextjs'
+import { SignInButton, useAuth, useUser, useClerk } from '@clerk/nextjs'
 import axios from 'axios'
 import { ArrowUp, HomeIcon, ImagePlus, LayoutDashboard, Loader2Icon, User, UserPlus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -41,6 +41,20 @@ function Hero() {
   const [loading, setLoading] = useState(false);
   const { has, getToken } = useAuth();
   const { userDetail, setUserDetail, refreshCredits } = useContext(UserDetailContext);
+  const { openSignIn } = useClerk();
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!userInput || loading) return;
+
+      if (!user) {
+        openSignIn({ forceRedirectUrl: '/workspace' });
+      } else {
+        CreateNewProject();
+      }
+    }
+  };
 
   const hasUnlimitedAccess = has && has({ plan: 'unlimited' });
 
@@ -116,6 +130,7 @@ function Hero() {
             placeholder='Describe your design idea...'
             value={userInput}
             onChange={(event) => setUserInput(event.target.value)}
+            onKeyDown={handleKeyDown}
             className='w-full bg-transparent focus:outline-none resize-none text-lg text-foreground placeholder:text-muted-foreground min-h-[120px] p-4'
           />
           <div className='flex justify-between items-center px-4 pb-4'>
