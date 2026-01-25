@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import PlaygroundHeader from '../_components/PlaygroundHeader';
 import ChatSection from '../_components/ChatSection';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import axios from 'axios';
 import WebsiteDesign from '../_components/WebsiteDesign';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { usePanelState } from '@/hooks/usePanelState';
 import ElementSettingSection from '../_components/ElementSettingSection';
 import ImageSettingSection from '../_components/ImageSettingsSection';
+import { v4 as uuidv4 } from 'uuid';
 
 export type Messages = {
   id?: number;
@@ -70,14 +71,22 @@ GOAL: Build a result that earns a "Site of the Day" nomination. Excellence is th
 function PlayGround() {
   const { projectId } = useParams();
   const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const frameId = params.get('frameId');
   const { getToken } = useAuth();
 
   const [frameDetail, setFrameDetail] = useState<Frame>();
   const [projectDetail, setProjectDetail] = useState<any>();
   const [loading, setLoading] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const [messages, setMessages] = useState<Messages[]>([]);
   const [generatedCode, setGeneratedCode] = useState<string>('');
+  const [streamingCode, setStreamingCode] = useState<string>('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const isGeneratingRef = useRef(false);
+  const hasAutoResumedRef = useRef(false);
+  const [viewingStreaming, setViewingStreaming] = useState(false);
   const [selectedElement, setSelectedElement] = useState<HTMLElement | null>(null);
 
   // Panel state management
@@ -158,69 +167,133 @@ function PlayGround() {
   };
 
   useEffect(() => {
-    if (projectId) GetProjectDetails();
-    if (frameId) GetFrameDetails();
+    if (projectId || frameId) {
+      FetchInitialData();
+      setViewingStreaming(false); // Switch to archive view if user clicks a version
+    }
   }, [frameId, projectId]);
 
-  const GetProjectDetails = async () => {
+  const FetchInitialData = async () => {
+    setLoading(true);
     try {
       const token = await getToken();
-      const result = await axios.get(process.env.NEXT_PUBLIC_API_URL + `/api/projects/${projectId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setProjectDetail(result.data?.data);
-    } catch (error) {
-      console.error("Error fetching project details:", error);
-    }
-  };
+      const headers = { Authorization: `Bearer ${token}` };
 
-  const GetFrameDetails = async () => {
-    try {
-      const token = await getToken();
-      const result = await axios.get(process.env.NEXT_PUBLIC_API_URL + `/api/frames?frameId=${frameId}&projectId=${projectId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log("Frame Details:", result.data);
-      const data = result.data?.data;
-      setFrameDetail(data);
+      // Parallelize both project and frame details fetching
+      // Safeguard: Ensure we don't fetch if IDs are 'undefined' or null
+      const isValidProjectId = projectId && projectId !== 'undefined';
+      const isValidFrameId = frameId && frameId !== 'undefined';
 
-      const designCode = data?.designCode;
+      const [projectRes, frameRes] = await Promise.all([
+        isValidProjectId ? axios.get(process.env.NEXT_PUBLIC_API_URL + `/api/projects/${projectId}`, { headers }).catch(e => { console.error("Project fetch 404/Error:", e); return null; }) : Promise.resolve(null),
+        isValidFrameId ? axios.get(process.env.NEXT_PUBLIC_API_URL + `/api/frames?frameId=${frameId}&projectId=${projectId}`, { headers }).catch(e => { console.error("Frame fetch 404/Error:", e); return null; }) : Promise.resolve(null)
+      ]);
 
-      // ✅ Check if designCode exists before processing
-      if (designCode) {
-        let formattedCode = designCode;
-        if (designCode.includes('```html')) {
-          const index = designCode.indexOf('```html');
-          formattedCode = designCode.slice(index + 7);
-          const endIndex = formattedCode.indexOf('```');
-          if (endIndex !== -1) {
-            formattedCode = formattedCode.slice(0, endIndex);
+      if (projectRes) {
+        const projectData = projectRes.data?.data;
+        setProjectDetail(projectData);
+        if (projectData?.chats) {
+          setMessages(projectData.chats);
+
+          // Auto-resume generation if the latest frame has NO design code
+          const sortedFrames = [...(projectData.frames || [])].sort((a: any, b: any) =>
+            new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime()
+          );
+          const latestFrame = sortedFrames[0];
+
+          if (latestFrame && !latestFrame.designCode && projectData.chats.length > 0 && !isGeneratingRef.current && !hasAutoResumedRef.current) {
+            // Find the last user message to use as prompt
+            const userMessages = projectData.chats.filter((m: any) => m.role === 'user');
+            const lastUserMsg = userMessages[userMessages.length - 1]?.content;
+            if (lastUserMsg) {
+              hasAutoResumedRef.current = true;
+              console.log("[Playground] Auto-resuming generation for prompt:", lastUserMsg);
+              setTimeout(() => SendMessage(lastUserMsg, true), 1000);
+            }
           }
         }
-        setGeneratedCode(formattedCode.trim());
+
+        // If no frameId in URL, use the latest frame from the project
+        if (!frameId && projectData?.frames?.length > 0) {
+          const sortedFrames = [...projectData.frames].sort((a: any, b: any) =>
+            new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime()
+          );
+          const latestFrame = sortedFrames[0];
+          setFrameDetail(latestFrame);
+
+          if (latestFrame.designCode) {
+            let formattedCode = latestFrame.designCode;
+            if (formattedCode.includes('```html')) {
+              const index = formattedCode.indexOf('```html');
+              formattedCode = formattedCode.slice(index + 7);
+              const endIndex = formattedCode.indexOf('```');
+              if (endIndex !== -1) {
+                formattedCode = formattedCode.slice(0, endIndex);
+              }
+            }
+            setGeneratedCode(formattedCode.trim());
+          }
+          // Sync URL with latest frameId if missing
+          if (!frameId) {
+            router.replace(`${pathname}?frameId=${latestFrame.frameId}`, { scroll: false });
+          }
+        }
       }
 
-      // Auto-send first message if exists
-      if (data?.chatMessages?.length === 1) {
-        const userMsg = data?.chatMessages[0].content;
-        SendMessage(userMsg);
-      } else if (data?.chatMessages) {
-        setMessages(data?.chatMessages);
+      if (frameRes) {
+        const data = frameRes.data?.data;
+        setFrameDetail(data);
+
+        const designCode = data?.designCode;
+        if (designCode) {
+          let formattedCode = designCode;
+          if (designCode.includes('```html')) {
+            const index = designCode.indexOf('```html');
+            formattedCode = designCode.slice(index + 7);
+            const endIndex = formattedCode.indexOf('```');
+            if (endIndex !== -1) {
+              formattedCode = formattedCode.slice(0, endIndex);
+            }
+          }
+          setGeneratedCode(formattedCode.trim());
+        }
+
+        if (data?.chats || data?.chatMessages) {
+          setMessages(data?.chats || data?.chatMessages);
+        }
+
+        // Auto-resume if THIS specific frame has no code
+        if (!data?.designCode && messages.length > 0) {
+          const userMessages = messages.filter((m: any) => m.role === 'user');
+          const lastUserMsg = userMessages[userMessages.length - 1]?.content;
+          if (lastUserMsg) SendMessage(lastUserMsg);
+        }
       }
     } catch (error) {
-      console.error("Error fetching frame details:", error);
-      toast.error("Failed to load frame details");
+      console.error("Error fetching initial data:", error);
+      toast.error("Failed to load workspace data");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const SendMessage = async (userInput: string) => {
-    setLoading(true);
+  const SendMessage = async (userInput: string, isAutoResume: boolean = false) => {
+    // Synchronous guard check
+    if (isGeneratingRef.current) {
+      console.warn("[Playground] Preventing concurrent generation for:", userInput);
+      return;
+    }
 
-    // Add user message to chat
-    setMessages((prev: any) => [...prev, { role: 'user', content: userInput }]);
+    isGeneratingRef.current = true;
+    setIsChatLoading(true);
+    setIsStreaming(true);
+    setStreamingCode('');
+    setViewingStreaming(true); // Automatically follow new generation
 
-    // Reset generatedCode before streaming new code
-    setGeneratedCode('');
+    // Add user message to chat ONLY if NOT an auto-resume
+    if (!isAutoResume) {
+      setMessages((prev: any) => [...prev, { role: 'user', content: userInput }]);
+    }
 
 
     try {
@@ -233,12 +306,11 @@ function PlayGround() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'text/event-stream'
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           messages: [{ role: "user", content: finalPrompt }]
-        }),
+        })
       });
 
       const reader = result.body?.getReader();
@@ -280,7 +352,7 @@ function PlayGround() {
                 isCode = true;
                 const index = aiResponse.indexOf('```html') + 7;
                 generatedHtmlCode = aiResponse.slice(index);
-                setGeneratedCode(generatedHtmlCode);
+                setStreamingCode(generatedHtmlCode);
 
                 // Update chat to indicate we started generating code
                 setMessages((prev: any) => {
@@ -296,10 +368,10 @@ function PlayGround() {
                   const startIndex = aiResponse.indexOf('```html') + 7;
                   const endIndex = aiResponse.lastIndexOf('```');
                   generatedHtmlCode = aiResponse.slice(startIndex, endIndex);
-                  setGeneratedCode(generatedHtmlCode);
+                  setStreamingCode(generatedHtmlCode);
                 } else {
                   generatedHtmlCode += content;
-                  setGeneratedCode(generatedHtmlCode);
+                  setStreamingCode(generatedHtmlCode);
                 }
               } else {
                 // Conversational text streaming
@@ -318,28 +390,25 @@ function PlayGround() {
         }
       }
 
-      // Finalize the state after streaming ends
-      if (isCode && generatedHtmlCode) {
-        await saveGeneratedCode(generatedHtmlCode);
-        setMessages((prev: any) => {
-          const newMessages = [...prev];
-          if (newMessages.length > 0) {
-            newMessages[newMessages.length - 1].content = 'Your code is ready!';
-          }
-          return newMessages;
-        });
-      } else if (isCode) {
-        // Fallback for code that ended but was somehow incorrectly sliced
-        await saveGeneratedCode(aiResponse);
-        setMessages((prev: any) => {
-          const newMessages = [...prev];
-          if (newMessages.length > 0) {
-            newMessages[newMessages.length - 1].content = 'Your code is ready!';
-          }
-          return newMessages;
-        });
-      }
+      setIsChatLoading(false);
+      setIsStreaming(false);
 
+      if (isCode && generatedHtmlCode) {
+        setGeneratedCode(generatedHtmlCode); // Switch active view to new code
+        // Update chat with success message
+        setMessages((prev: any) => {
+          const newMessages = [...prev];
+          if (newMessages.length > 0) {
+            newMessages[newMessages.length - 1].content = 'Your website is ready!';
+          }
+          return newMessages;
+        });
+
+        toast.success("Your website is ready!"); // Global toast as requested
+
+        // ONLY save version when code is fully ready and streaming finished
+        await saveGeneratedCode(generatedHtmlCode);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       setMessages((prev: any) => [
@@ -348,48 +417,103 @@ function PlayGround() {
       ]);
       toast.error("Failed to generate code");
     } finally {
-      setLoading(false);
+      setIsChatLoading(false);
+      setIsStreaming(false);
+      isGeneratingRef.current = false;
     }
   };
 
+  // Debounced save for messages
   useEffect(() => {
-    if (messages.length > 0) {
-      SaveMessages();
-    }
+    const timer = setTimeout(() => {
+      if (messages.length > 0) {
+        SaveMessages();
+      }
+    }, 2000); // Wait 2 seconds of inactivity before saving
+
+    return () => clearTimeout(timer);
   }, [messages]);
 
   const SaveMessages = async () => {
     try {
       const token = await getToken();
-      const result = await axios.put(process.env.NEXT_PUBLIC_API_URL + '/api/frames/chats', {
+      await axios.put(process.env.NEXT_PUBLIC_API_URL + '/api/frames/chats', {
         messages: messages,
-        frameId: frameId
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log(result);
-    } catch (error) {
-      console.error("Error saving messages:", error);
-    }
-  }
-
-  const saveGeneratedCode = async (code: string) => {
-    try {
-      const token = await getToken();
-      const result = await axios.put(process.env.NEXT_PUBLIC_API_URL + '/api/frames', {
-        designCode: code,
-        frameId: frameId,
         projectId: projectId
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log(result.data);
-      toast.success('Website is Ready!');
     } catch (error) {
-      console.error("Error saving code:", error);
-      toast.error("Failed to save website");
+      console.error("Error saving messages:", error);
     }
-  }
+  };
+
+  const saveGeneratedCode = async (code: string) => {
+    try {
+      const token = await getToken();
+      const existingVersions = projectDetail?.frames?.filter((f: any) => f.designCode) || [];
+      const nextVersionNumber = existingVersions.length + 1;
+      const versionName = `Version ${nextVersionNumber}`;
+
+      // Check if current frame is "empty" (initial placeholder)
+      const isInitialFrame = !frameDetail?.designCode;
+
+      let res: any;
+      if (isInitialFrame && frameId) {
+        // Update the existing placeholder frame instead of creating a new version
+        res = await axios.put(process.env.NEXT_PUBLIC_API_URL + '/api/frames', {
+          frameId: frameId,
+          projectId: projectId,
+          designCode: code,
+          name: versionName
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Update local state for the current frame with full data from backend
+        const updatedFrame = res.data.data;
+        setFrameDetail(updatedFrame);
+
+        setProjectDetail((prev: any) => {
+          if (!prev) return prev;
+          const updatedFrames = (prev.frames || []).map((f: any) =>
+            f.frameId === frameId ? updatedFrame : f
+          );
+          return { ...prev, frames: updatedFrames };
+        });
+        // Silent finalized for auto-save as requested
+      } else {
+        // Create a new version normally
+        const newFrameId = uuidv4();
+        res = await axios.post(process.env.NEXT_PUBLIC_API_URL + '/api/frames/version', {
+          frameId: newFrameId,
+          projectId: projectId,
+          designCode: code,
+          messages: messages,
+          name: versionName
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const newFrame = res.data.data;
+        setFrameDetail(newFrame); // Update locally immediately
+        setProjectDetail((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            frames: [...(prev.frames || []), newFrame]
+          };
+        });
+
+        if (viewingStreaming) {
+          router.replace(`${pathname}?frameId=${newFrameId}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error saving code version:", error);
+      toast.error("Failed to save website version");
+    }
+  };
 
   const handleDeleteMessage = async (messageId: number) => {
     try {
@@ -424,10 +548,11 @@ function PlayGround() {
       <PlaygroundHeader
         projectId={projectId as string}
         onRefresh={handleRefresh}
-        onUndo={() => toast.info('Undo functionality coming soon!')}
-        onRedo={() => toast.info('Redo functionality coming soon!')}
+        onUndo={() => { toast.info('Undo functionality coming soon!') }}
+        onRedo={() => { toast.info('Redo functionality coming soon!') }}
         canUndo={false}
         canRedo={false}
+        onProjectUpdate={(data) => setProjectDetail((prev: any) => ({ ...prev, ...data }))}
       />
 
       <div className='flex flex-col md:flex-row flex-1 overflow-hidden'>
@@ -461,7 +586,7 @@ function PlayGround() {
                 onSend={(input: string) => SendMessage(input)}
                 onDeleteMessage={handleDeleteMessage}
                 onClearChat={handleClearChat}
-                loading={loading}
+                loading={isChatLoading}
                 fullPrompt={Prompt
                   .replace('{userInput}', '...')
                   .replace('{projectDescription}', projectDetail?.description || 'A professional web application')}
@@ -500,7 +625,7 @@ function PlayGround() {
             onSend={(input: string) => SendMessage(input)}
             onDeleteMessage={handleDeleteMessage}
             onClearChat={handleClearChat}
-            loading={loading}
+            loading={isChatLoading}
             fullPrompt={Prompt
               .replace('{userInput}', '...')
               .replace('{projectDescription}', projectDetail?.description || 'A professional web application')}
@@ -522,13 +647,16 @@ function PlayGround() {
         {/* Website Design Section (render on desktop/tablet or when Preview tab selected on mobile) */}
         {(screenSize !== 'mobile' || mobileTab === 'preview') && (
           <WebsiteDesign
-            generatedCode={generatedCode?.replace('```', '')}
+            generatedCode={(isStreaming && viewingStreaming) ? streamingCode : generatedCode?.replace('```', '')}
             isMinimized={panelStates.preview.minimized}
             isExpanded={panelStates.preview.expanded}
             onToggle={() => togglePanel('preview')}
             onExpand={() => expandPanel('preview')}
             onMinimize={() => resetPanel('preview')}
             onElementSelect={setSelectedElement}
+            frames={projectDetail?.frames || []}
+            currentFrame={frameDetail}
+            isStreaming={isStreaming}
           />
         )}
 
