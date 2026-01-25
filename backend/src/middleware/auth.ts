@@ -57,7 +57,7 @@ export async function requireProjectOwnership(req: Request, res: Response, next:
         const project = projects[0];
 
         // If project is public and it's a GET request, allow access
-        if (project.isPublic && req.method === 'GET') {
+        if (Boolean(project.isPublic) && req.method === 'GET') {
             return next();
         }
 
