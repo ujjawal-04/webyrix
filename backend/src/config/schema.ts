@@ -32,9 +32,10 @@ export const frameTable = pgTable('frames', {
 
 export const chatTable = pgTable('chats', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  chatMessage: json(),
-  frameId: varchar().references(() => frameTable.frameId),
-  createdBy: varchar().references(() => usersTable.email),
-  createdOn: timestamp().defaultNow(),
-  updatedAt: timestamp().defaultNow().$onUpdate(() => new Date()),
+  chatMessage: json("chatMessage"),
+  projectId: varchar("projectId").references(() => projectTable.projectId),
+  frameId: varchar("frameId").references(() => frameTable.frameId),
+  createdBy: varchar("createdBy").references(() => usersTable.email),
+  createdOn: timestamp("createdOn").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()),
 });

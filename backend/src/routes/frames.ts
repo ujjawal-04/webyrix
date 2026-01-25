@@ -2,13 +2,13 @@ import express, { Request, Response } from 'express';
 import { db } from '../config/db';
 import { chatTable, frameTable, projectTable } from '../config/schema';
 import { and, eq, inArray } from 'drizzle-orm';
-import { requireAuth, requireFrameOwnership } from '../middleware/auth';
+import * as auth from '../middleware/auth';
 import { formatErrorResponse, formatSuccessResponse, getUserEmail } from '../utils/helpers';
 
 const router = express.Router();
 
 // POST /api/frames (Create New Frame)
-router.post('/', requireAuth, async (req: Request, res: Response) => {
+router.post('/', auth.requireAuth, async (req: Request, res: Response) => {
     try {
         const { frameId, projectId, name } = req.body;
         const { userId } = req.auth;
@@ -64,8 +64,36 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     }
 });
 
+// POST /api/frames/version (Create a New Version of a Frame)
+router.post('/version', auth.requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { frameId, projectId, designCode, messages, name } = req.body;
+        const { userId } = req.auth;
+
+        if (!frameId || !projectId) {
+            res.status(400).json(formatErrorResponse('frameId and projectId are required', 'VALIDATION_ERROR'));
+            return;
+        }
+
+        const email = await getUserEmail(userId);
+
+        // 1. Create the new frame
+        const newFrame = await db.insert(frameTable).values({
+            frameId,
+            projectId,
+            designCode,
+            name: name || `Version ${new Date().toLocaleTimeString()}`,
+        }).returning();
+
+        res.json(formatSuccessResponse(newFrame[0], 'New version created successfully'));
+    } catch (error) {
+        console.error('Error in POST /api/frames/version:', error);
+        res.status(500).json(formatErrorResponse('Internal Server Error', 'INTERNAL_ERROR'));
+    }
+});
+
 // GET /api/frames?frameId=...&projectId=...
-router.get('/', requireAuth, async (req: Request, res: Response) => {
+router.get('/', auth.requireAuth, async (req: Request, res: Response) => {
     try {
         const { frameId, projectId } = req.query;
 
@@ -99,10 +127,10 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
             return;
         }
 
-        // fetch chat messages
+        // fetch chat messages for the entire project
         const chatResult = await db.select().from(chatTable)
             // @ts-ignore
-            .where(eq(chatTable.frameId, frameId as string));
+            .where(eq(chatTable.projectId, frameResult[0].projectId));
 
         // Flatten messages
         const chatMessages = chatResult
@@ -111,7 +139,7 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 
         const finalResult = {
             ...frameResult[0],
-            chatMessages,
+            chats: chatMessages,
         };
 
         res.json(formatSuccessResponse(finalResult, 'Frame retrieved successfully'));
@@ -122,7 +150,7 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 });
 
 // GET /api/frames/:frameId (Get Single Frame)
-router.get('/:frameId', requireAuth, requireFrameOwnership, async (req: Request, res: Response) => {
+router.get('/:frameId', auth.requireAuth, auth.requireFrameOwnership, async (req: Request, res: Response) => {
     try {
         const { frameId } = req.params;
 
@@ -137,10 +165,10 @@ router.get('/:frameId', requireAuth, requireFrameOwnership, async (req: Request,
             return;
         }
 
-        // fetch chat messages
+        // fetch chat messages for the entire project
         const chatResult = await db.select().from(chatTable)
             // @ts-ignore
-            .where(eq(chatTable.frameId, frameId));
+            .where(eq(chatTable.projectId, frameResult[0].projectId));
 
         // Flatten messages
         const chatMessages = chatResult
@@ -160,15 +188,17 @@ router.get('/:frameId', requireAuth, requireFrameOwnership, async (req: Request,
 });
 
 // PUT /api/frames (Update Design Code) - Legacy
-router.put('/', requireAuth, requireFrameOwnership, async (req: Request, res: Response) => {
+router.put('/', auth.requireAuth, auth.requireFrameOwnership, async (req: Request, res: Response) => {
     try {
-        const { designCode, frameId, projectId } = req.body;
+        const { designCode, frameId, projectId, name } = req.body;
 
-        await db.update(frameTable).set({
-            designCode: designCode
-        }).where(and(eq(frameTable.frameId, frameId), eq(frameTable.projectId, projectId)));
+        const updatedFrame = await db.update(frameTable).set({
+            designCode: designCode,
+            name: name || undefined
+        }).where(and(eq(frameTable.frameId, frameId), eq(frameTable.projectId, projectId)))
+            .returning();
 
-        res.json(formatSuccessResponse(null, 'Frame updated successfully'));
+        res.json(formatSuccessResponse(updatedFrame[0], 'Frame updated successfully'));
     } catch (error) {
         console.error('Error in PUT /api/frames:', error);
         res.status(500).json(formatErrorResponse('Internal Server Error', 'INTERNAL_ERROR'));
@@ -176,13 +206,16 @@ router.put('/', requireAuth, requireFrameOwnership, async (req: Request, res: Re
 });
 
 // PUT /api/frames/chats (Update Chats) - Migrated from /api/chats
-router.put('/chats', requireAuth, requireFrameOwnership, async (req: Request, res: Response) => {
+router.put('/chats', auth.requireAuth, auth.requireProjectOwnership, async (req: Request, res: Response) => {
     try {
-        const { messages, frameId } = req.body;
+        const { messages, projectId } = req.body;
 
+        // Update the latest chat entry for this project
         await db.update(chatTable).set({
             chatMessage: messages
-        }).where(eq(chatTable.frameId, frameId));
+        }).where(eq(chatTable.projectId, projectId));
+        // Note: In an ideal scenario, we should ensure only one project-level chat exists
+        // but for now, updating all associated with projectId is consistent with our new model
 
         res.json(formatSuccessResponse(null, 'Chats updated successfully'));
     } catch (error) {
@@ -192,7 +225,7 @@ router.put('/chats', requireAuth, requireFrameOwnership, async (req: Request, re
 });
 
 // PUT /api/frames/:frameId (Update Frame)
-router.put('/:frameId', requireAuth, requireFrameOwnership, async (req: Request, res: Response) => {
+router.put('/:frameId', auth.requireAuth, auth.requireFrameOwnership, async (req: Request, res: Response) => {
     try {
         const { frameId } = req.params;
         const { designCode, name } = req.body;
@@ -227,7 +260,7 @@ router.put('/:frameId', requireAuth, requireFrameOwnership, async (req: Request,
 });
 
 // DELETE /api/frames/:frameId (Delete Frame and Associated Chats)
-router.delete('/:frameId', requireAuth, requireFrameOwnership, async (req: Request, res: Response) => {
+router.delete('/:frameId', auth.requireAuth, auth.requireFrameOwnership, async (req: Request, res: Response) => {
     try {
         const { frameId } = req.params;
 
