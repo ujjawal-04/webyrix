@@ -30,9 +30,10 @@ type ProjectStats = {
 
 type Props = {
     projectId: string;
+    onUpdate?: (data: { description: string; isPublic: boolean }) => void;
 };
 
-export default function ProjectSettingsDialog({ projectId }: Props) {
+export default function ProjectSettingsDialog({ projectId, onUpdate }: Props) {
     const { getToken } = useAuth();
     const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState<ProjectStats | null>(null);
@@ -79,6 +80,9 @@ export default function ProjectSettingsDialog({ projectId }: Props) {
             await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`, projectData, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            if (onUpdate) {
+                onUpdate(projectData);
+            }
             toast.success('Project settings updated');
         } catch (error) {
             console.error("Error updating project settings:", error);

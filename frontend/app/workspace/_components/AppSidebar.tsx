@@ -70,9 +70,10 @@ export function AppSidebar() {
       });
       toast.success('Project deleted successfully');
       GetProjectList(); // Refresh the list
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting project:', error);
-      toast.error('Failed to delete project');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to delete project';
+      toast.error(errorMsg);
     } finally {
       setDeleteId(null);
     }
@@ -107,7 +108,7 @@ export function AppSidebar() {
                 <div key={index} className="group relative">
                   <Link href={`/playground/${project.projectId}?frameId=${project.frameId}`} className="flex flex-1 my-1 hover:bg-secondary p-2 rounded-lg cursor-pointer transition-colors pr-10">
                     <h2 className="line-clamp-1 text-sm font-medium">
-                      {project?.chats[0]?.chatMessage[0]?.content || 'Untitled Project'}
+                      {project?.chats?.[0]?.content || 'Untitled Project'}
                     </h2>
                   </Link>
 
