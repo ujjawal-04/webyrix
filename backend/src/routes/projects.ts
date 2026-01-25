@@ -112,21 +112,23 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
                 .where(inArray(chatTable.projectId, projectIds));
         }
 
-        // 4. Aggregate the data
-        const results = projects.flatMap(project => {
-            const projectFrames = allFrames.filter(f => f.projectId === project.projectId);
+        // 4. Aggregate the data - One entry per project with the latest frameId
+        const results = projects.map(project => {
+            const projectFrames = allFrames
+                .filter(f => f.projectId === project.projectId)
+                .sort((a: any, b: any) => new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime());
 
-            return projectFrames.map(frame => {
-                const projectChats = allChats.filter(c => c.projectId === project.projectId);
-                // Take the most recent chat entry
-                const latestChat = projectChats.length > 0 ? projectChats[projectChats.length - 1].chatMessage : [];
+            const projectChats = allChats.filter(c => c.projectId === project.projectId);
+            // Take the most recent chat entry for this project
+            const latestChat = projectChats.length > 0 ? projectChats[projectChats.length - 1].chatMessage : [];
 
-                return {
-                    projectId: project.projectId ?? "",
-                    frameId: frame.frameId ?? "",
-                    chats: latestChat,
-                };
-            });
+            return {
+                projectId: project.projectId ?? "",
+                frameId: projectFrames[0]?.frameId ?? "", // Latest frame ID
+                chats: latestChat,
+                description: project.description,
+                createdOn: project.createdOn
+            };
         });
 
         res.json(formatSuccessResponse(results, 'Projects retrieved successfully'));
