@@ -51,7 +51,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
         await db.insert(chatTable).values({
             chatMessage: messages,
             createdBy: email,
-            frameId: frameId,
+            projectId: projectId, // Associated with project, not just frame
         });
 
         // Update user credits
@@ -69,7 +69,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     }
 });
 
-// GET /api/projects (Get All Projects) - Migrated from get-all-projects
+// GET /api/projects (Get All Projects) - Optimized with batching
 router.get('/', requireAuth, async (req: Request, res: Response) => {
     try {
         const { userId } = req.auth;
@@ -80,6 +80,7 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
             return;
         }
 
+        // 1. Fetch all projects for the user
         const projects = await db
             .select()
             .from(projectTable)
@@ -87,33 +88,46 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
             .where(eq(projectTable.createdBy, email))
             .orderBy(desc(projectTable.id));
 
-        let results: any[] = [];
+        if (projects.length === 0) {
+            res.json(formatSuccessResponse([], 'No projects found'));
+            return;
+        }
 
-        for (const project of projects) {
-            const frames = await db
-                .select({ frameId: frameTable.frameId })
-                .from(frameTable)
-                // @ts-ignore
-                .where(eq(frameTable.projectId, project.projectId));
+        const projectIds = projects.map(p => p.projectId).filter((id): id is string => id !== null);
 
-            const frameIds = frames.map((f: any) => f.frameId);
-            let chats: any[] = [];
+        // 2. Fetch all frames for these projects in one batch
+        const allFrames = await db
+            .select()
+            .from(frameTable)
+            .where(inArray(frameTable.projectId, projectIds));
 
-            if (frameIds.length > 0) {
-                chats = await db
-                    .select()
-                    .from(chatTable)
-                    .where(inArray(chatTable.frameId, frameIds));
-            }
+        const frameIds = allFrames.map(f => f.frameId).filter((id): id is string => id !== null);
 
-            for (const frame of frames) {
-                results.push({
+        // 3. Fetch all chats for these projects in one batch
+        let allChats: any[] = [];
+        if (projectIds.length > 0) {
+            allChats = await db
+                .select()
+                .from(chatTable)
+                .where(inArray(chatTable.projectId, projectIds));
+        }
+
+        // 4. Aggregate the data
+        const results = projects.flatMap(project => {
+            const projectFrames = allFrames.filter(f => f.projectId === project.projectId);
+
+            return projectFrames.map(frame => {
+                const projectChats = allChats.filter(c => c.projectId === project.projectId);
+                // Take the most recent chat entry
+                const latestChat = projectChats.length > 0 ? projectChats[projectChats.length - 1].chatMessage : [];
+
+                return {
                     projectId: project.projectId ?? "",
                     frameId: frame.frameId ?? "",
-                    chats: chats.filter((c) => c.frameId === frame.frameId),
-                });
-            }
-        }
+                    chats: latestChat,
+                };
+            });
+        });
 
         res.json(formatSuccessResponse(results, 'Projects retrieved successfully'));
 
@@ -123,48 +137,34 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     }
 });
 
-// GET /api/projects/:projectId (Get Single Project)
+// GET /api/projects/:projectId (Get Single Project) - Optimized with Promise.all
 router.get('/:projectId', optionalAuth, requireProjectOwnership, async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
 
-        // Get project
-        const project = await db
-            .select()
-            .from(projectTable)
-            // @ts-ignore
-            .where(eq(projectTable.projectId, projectId))
-            .limit(1);
+        // Fetch project and frames in parallel
+        const [projectResult, frames] = await Promise.all([
+            db.select().from(projectTable).where(eq(projectTable.projectId, projectId)).limit(1),
+            db.select().from(frameTable).where(eq(frameTable.projectId, projectId))
+        ]);
 
-        if (project.length === 0) {
+        if (projectResult.length === 0) {
             res.status(404).json(formatErrorResponse('Project not found', 'NOT_FOUND'));
             return;
         }
 
-        // Get all frames for this project
-        const frames = await db
+        // Get all chats for this project (take the latest entry if multiple exist)
+        const chats = await db
             .select()
-            .from(frameTable)
-            // @ts-ignore
-            .where(eq(frameTable.projectId, projectId));
-
-        // Get all chats for these frames
-        const frameIds = frames.map(f => f.frameId).filter((id): id is string => id !== null);
-        let chats: any[] = [];
-
-        if (frameIds.length > 0) {
-            chats = await db
-                .select()
-                .from(chatTable)
-                .where(inArray(chatTable.frameId, frameIds));
-        }
+            .from(chatTable)
+            .where(eq(chatTable.projectId, projectId))
+            .orderBy(desc(chatTable.id))
+            .limit(1);
 
         const result = {
-            ...project[0],
-            frames: frames.map(frame => ({
-                ...frame,
-                chats: chats.filter(c => c.frameId === frame.frameId)
-            }))
+            ...projectResult[0],
+            frames: frames,
+            chats: chats[0]?.chatMessage || []
         };
 
         res.json(formatSuccessResponse(result, 'Project retrieved successfully'));
@@ -224,11 +224,16 @@ router.delete('/:projectId', requireAuth, requireProjectOwnership, async (req: R
 
         const frameIds = frames.map(f => f.frameId).filter((id): id is string => id !== null);
 
-        // Delete all chats for these frames
+        // Delete all chats associated with this project's frames
         if (frameIds.length > 0) {
             await db.delete(chatTable)
                 .where(inArray(chatTable.frameId, frameIds));
         }
+
+        // Delete all chats associated with this project (using unified projectId)
+        await db.delete(chatTable)
+            // @ts-ignore
+            .where(eq(chatTable.projectId, projectId));
 
         // Delete all frames
         await db.delete(frameTable)
@@ -241,9 +246,9 @@ router.delete('/:projectId', requireAuth, requireProjectOwnership, async (req: R
             .where(eq(projectTable.projectId, projectId));
 
         res.json(formatSuccessResponse(null, 'Project and all associated data deleted successfully'));
-    } catch (error) {
-        console.error('Error in DELETE /api/projects/:projectId:', error);
-        res.status(500).json(formatErrorResponse('Internal Server Error', 'INTERNAL_ERROR'));
+    } catch (error: any) {
+        console.error('CRITICAL Error in DELETE /api/projects/:projectId:', error);
+        res.status(500).json(formatErrorResponse(`Internal Server Error: ${error.message}`, 'INTERNAL_ERROR'));
     }
 });
 
@@ -275,22 +280,22 @@ router.get('/:projectId/stats', requireAuth, requireProjectOwnership, async (req
         const frameCount = frames.length;
         const frameIds = frames.map(f => f.frameId).filter((id): id is string => id !== null);
 
-        // Count chats
+        // Count chats from the latest unified chat entry
         let userMessageCount = 0;
         let aiMessageCount = 0;
-        if (frameIds.length > 0) {
-            const chats = await db
-                .select()
-                .from(chatTable)
-                .where(inArray(chatTable.frameId, frameIds));
 
-            chats.forEach((chat: any) => {
-                if (Array.isArray(chat.chatMessage)) {
-                    chat.chatMessage.forEach((msg: any) => {
-                        if (msg.role === 'user') userMessageCount++;
-                        else if (msg.role === 'assistant') aiMessageCount++;
-                    });
-                }
+        const projectChats = await db
+            .select()
+            .from(chatTable)
+            // @ts-ignore
+            .where(eq(chatTable.projectId, projectId))
+            .orderBy(desc(chatTable.id))
+            .limit(1);
+
+        if (projectChats.length > 0 && Array.isArray(projectChats[0].chatMessage)) {
+            projectChats[0].chatMessage.forEach((msg: any) => {
+                if (msg.role === 'user') userMessageCount++;
+                else if (msg.role === 'assistant') aiMessageCount++;
             });
         }
 

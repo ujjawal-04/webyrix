@@ -10,11 +10,11 @@ const router = express.Router();
 // POST /api/chats (Create New Chat Message)
 router.post('/', requireAuth, async (req: Request, res: Response) => {
     try {
-        const { frameId, messages } = req.body;
+        const { frameId, projectId, messages } = req.body;
         const { userId } = req.auth;
 
-        if (!frameId || !messages) {
-            res.status(400).json(formatErrorResponse('frameId and messages are required', 'VALIDATION_ERROR'));
+        if (!projectId || !messages) {
+            res.status(400).json(formatErrorResponse('projectId and messages are required', 'VALIDATION_ERROR'));
             return;
         }
 
@@ -54,7 +54,8 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
         await db.insert(chatTable).values({
             chatMessage: messages,
             createdBy: email,
-            frameId: frameId,
+            projectId: projectId,
+            frameId: frameId || null,
         });
 
         res.json(formatSuccessResponse({ frameId, messages }, 'Chat created successfully'));
@@ -102,12 +103,12 @@ router.get('/:frameId', requireAuth, async (req: Request, res: Response) => {
             return;
         }
 
-        // Get all chats for this frame
+        // Get all chats for this project
         const chats = await db
             .select()
             .from(chatTable)
             // @ts-ignore
-            .where(eq(chatTable.frameId, frameId));
+            .where(eq(chatTable.projectId, frame[0].projectId));
 
         res.json(formatSuccessResponse(chats, 'Chats retrieved successfully'));
     } catch (error) {
@@ -170,10 +171,10 @@ router.delete('/frame/:frameId', requireAuth, async (req: Request, res: Response
             return;
         }
 
-        // Delete all chats for this frame
+        // Delete all chats for this project
         await db.delete(chatTable)
             // @ts-ignore
-            .where(eq(chatTable.frameId, frameId));
+            .where(eq(chatTable.projectId, frame[0].projectId));
 
         res.json(formatSuccessResponse(null, 'All chats deleted successfully'));
     } catch (error) {
