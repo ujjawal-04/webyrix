@@ -7,6 +7,9 @@ import { useAuth } from "@clerk/nextjs";
 import { toast } from "sonner";
 import PanelHeader from "./PanelHeader";
 import { Monitor } from "lucide-react";
+import VersionSelector from "./VersionSelector";
+import { Button } from "@/components/ui/button";
+import SequentialLoaders from "./SequentialLoaders";
 
 type Props = {
   generatedCode: string;
@@ -16,6 +19,9 @@ type Props = {
   onExpand: () => void;
   onMinimize: () => void;
   onElementSelect: (element: HTMLElement | null) => void;
+  frames?: any[];
+  currentFrame?: any;
+  isStreaming?: boolean;
 };
 
 const HTML_CODE = `<!DOCTYPE html>
@@ -33,7 +39,7 @@ const HTML_CODE = `<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.js"></script>
 </html>`;
 
-function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExpand, onMinimize, onElementSelect }: Props) {
+function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExpand, onMinimize, onElementSelect, frames = [], currentFrame, isStreaming = false }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [selectedScreenSize, setSelectedScreenSize] = useState("web");
   const { onSaveData, setOnSaveData } = useContext(OnSaveContext);
@@ -86,6 +92,8 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
       const cleanCode = extractHtmlCode(generatedCode);
       // Directly update innerHTML to prevent iframe reloads and "blanking"
       root.innerHTML = cleanCode;
+    } else {
+      root.innerHTML = ''; // Clear if empty
     }
   }, [generatedCode]);
 
@@ -198,7 +206,7 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
             }
           });
           console.log(result.data);
-          toast.success('Saved Successfully!');
+          toast.success('Your website is saved and ready!');
         }
       } catch (err) {
         console.error("Save error:", err);
@@ -209,7 +217,6 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
   return (
     <div className={`${isMinimized ? 'w-12' : isExpanded ? 'w-full' : 'flex-1'} 
       flex flex-col panel-transition bg-background`}>
-
       <PanelHeader
         title="Preview"
         isMinimized={isMinimized}
@@ -218,14 +225,27 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
         onExpand={onExpand}
         onMinimize={onMinimize}
         icon={<Monitor className="h-3.5 w-3.5" />}
-      />
+      >
+        {!isMinimized && (
+          <div className="flex items-center gap-2">
+            {/* @ts-ignore */}
+            <VersionSelector frames={frames} currentFrameId={currentFrame?.frameId || frameId} />
+          </div>
+        )}
+      </PanelHeader>
 
       <div className={`${isMinimized ? 'hidden' : 'flex'} flex-col h-full overflow-auto custom-scrollbar`}>
-        <div className="p-3 sm:p-5 flex-1 flex flex-col items-center justify-center">
+        <div className="p-3 sm:p-5 flex-1 flex flex-col items-center justify-center relative w-full h-full">
+          {(isStreaming || !generatedCode) && (
+            <div className="absolute inset-0 z-10 p-3 sm:p-5">
+              <SequentialLoaders mode={isStreaming ? 'streaming' : 'loading'} />
+            </div>
+          )}
           <iframe
             ref={iframeRef}
             className={`${selectedScreenSize === "web" ? "w-full" : "w-full max-w-md"
-              } flex-1 min-h-[400px] border border-border/50 rounded-xl bg-transparent shadow-lg transition-all duration-300`}
+              } flex-1 min-h-[400px] border border-border/50 rounded-xl bg-white shadow-lg transition-all duration-500 ${(isStreaming || !generatedCode) ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+              }`}
             sandbox="allow-scripts allow-same-origin"
           />
 
@@ -236,7 +256,7 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
           />
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
