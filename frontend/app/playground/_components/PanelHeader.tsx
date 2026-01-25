@@ -16,6 +16,7 @@ type Props = {
     onExpand?: () => void;
     onMinimize?: () => void;
     icon?: React.ReactNode;
+    children?: React.ReactNode;
 };
 
 function PanelHeader({
@@ -25,7 +26,8 @@ function PanelHeader({
     onToggle,
     onExpand,
     onMinimize,
-    icon
+    icon,
+    children
 }: Props) {
 
     if (isMinimized) {
@@ -62,6 +64,7 @@ function PanelHeader({
                     {icon && <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary">{icon}</div>}
                     <span className="text-sm font-medium text-foreground">{title}</span>
                 </div>
+                {children && <div className="flex-1 flex justify-center">{children}</div>}
                 <div className="flex items-center gap-0.5">
                     {!isExpanded && onExpand && (
                         <Tooltip>
@@ -111,7 +114,7 @@ function PanelHeader({
                     </Tooltip>
                 </div>
             </div>
-        </TooltipProvider>
+        </TooltipProvider >
     );
 }
 

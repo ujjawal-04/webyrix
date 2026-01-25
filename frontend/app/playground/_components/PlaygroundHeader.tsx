@@ -4,8 +4,10 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { OnSaveContext } from '@/context/OnSaveContext';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Save, RotateCcw, Undo2, Redo2, Settings } from 'lucide-react';
 import ProjectSettingsDialog from './ProjectSettingsDialog';
+import VersionSelector from './VersionSelector';
 import {
   Tooltip,
   TooltipContent,
@@ -20,11 +22,13 @@ type Props = {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  onProjectUpdate?: (data: { description: string; isPublic: boolean }) => void;
 };
 
-function PlaygroundHeader({ projectId, onRefresh, onUndo, onRedo, canUndo = false, canRedo = false }: Props) {
+function PlaygroundHeader({ projectId, onRefresh, onUndo, onRedo, canUndo = false, canRedo = false, onProjectUpdate }: Props) {
 
   const { onSaveData, setOnSaveData } = useContext(OnSaveContext);
+  const params = useSearchParams();
 
   return (
     <div className='glass sticky top-0 z-50 flex h-14 items-center justify-between border-b border-border/50 px-4'>
@@ -91,7 +95,7 @@ function PlaygroundHeader({ projectId, onRefresh, onUndo, onRedo, canUndo = fals
           )}
 
           {/* Project Settings */}
-          <ProjectSettingsDialog projectId={projectId} />
+          <ProjectSettingsDialog projectId={projectId} onUpdate={onProjectUpdate} />
 
           {/* Save Button */}
           <Tooltip>
