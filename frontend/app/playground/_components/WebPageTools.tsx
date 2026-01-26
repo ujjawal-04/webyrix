@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Code2Icon, Download, Monitor, SquareArrowOutUpRightIcon, Tablet } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import ViewCodeBlock from './ViewCodeBlock'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 
 const HTML_CODE = `<!DOCTYPE html>
       <html lang="en">
@@ -50,8 +50,10 @@ const HTML_CODE = `<!DOCTYPE html>
       </body>
       </html>`
 
-function WebPageTools({ selectedScreenSize, setSelectedScreenSize, generatedCode }: any) {
+function WebPageTools({ selectedScreenSize, setSelectedScreenSize, generatedCode, frameId }: any) {
   const { projectId } = useParams();
+  const searchParams = useSearchParams();
+  const currentFrameId = frameId || searchParams.get('frameId');
 
   const [finalCode, setFinalCode] = useState<string>();
 
@@ -64,7 +66,7 @@ function WebPageTools({ selectedScreenSize, setSelectedScreenSize, generatedCode
   }, [generatedCode]);
 
   const ViewInNewTab = () => {
-    window.open(`/view/${projectId}?mode=preview`, "_blank");
+    window.open(`/view/${projectId}?mode=preview${currentFrameId ? `&frameId=${currentFrameId}` : ''}`, "_blank");
   }
 
   const downloadCode = () => {
