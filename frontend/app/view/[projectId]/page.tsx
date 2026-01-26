@@ -87,12 +87,16 @@ export default function ViewProject() {
         return processed;
     };
 
-    // Use the latest frame's design code
-    const latestFrame = project.frames && project.frames.length > 0
-        ? project.frames.sort((a: any, b: any) => new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime())[0]
+    const frameId = searchParams.get('frameId');
+
+    // Use specific frame if requested, otherwise use latest
+    const selectedFrame = project.frames && project.frames.length > 0
+        ? (frameId
+            ? project.frames.find((f: any) => f.frameId === frameId)
+            : project.frames.sort((a: any, b: any) => new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime())[0])
         : null;
 
-    const displayCode = latestFrame ? extractHtmlCode(latestFrame.designCode) : '';
+    const displayCode = selectedFrame ? extractHtmlCode(selectedFrame.designCode) : '';
 
     return (
         <div className="h-screen flex flex-col overflow-hidden bg-background">
