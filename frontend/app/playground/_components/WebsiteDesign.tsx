@@ -22,6 +22,9 @@ type Props = {
   frames?: any[];
   currentFrame?: any;
   isStreaming?: boolean;
+  onCodeUpdate?: (code: string) => void;
+  onFrameUpdate?: (frame: any) => void;
+  onDelete?: (frameId: string) => void;
 };
 
 const HTML_CODE = `<!DOCTYPE html>
@@ -39,7 +42,7 @@ const HTML_CODE = `<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.js"></script>
 </html>`;
 
-function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExpand, onMinimize, onElementSelect, frames = [], currentFrame, isStreaming = false }: Props) {
+function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExpand, onMinimize, onElementSelect, frames = [], currentFrame, isStreaming = false, onCodeUpdate, onFrameUpdate, onDelete }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [selectedScreenSize, setSelectedScreenSize] = useState("web");
   const { onSaveData, setOnSaveData } = useContext(OnSaveContext);
@@ -48,8 +51,16 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
   const frameId = params.get('frameId');
   const { getToken } = useAuth();
 
+
   const selectedElRef = useRef<HTMLElement | null>(null);
   const hoverElRef = useRef<HTMLElement | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSubmittedCodeRef = useRef<string | null>(null);
+  const onCodeUpdateRef = useRef(onCodeUpdate);
+
+  useEffect(() => {
+    onCodeUpdateRef.current = onCodeUpdate;
+  }, [onCodeUpdate]);
 
   /** 1️⃣ Initialize Shell ONCE */
   useEffect(() => {
@@ -78,22 +89,44 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
     if (!root) return;
 
     if (generatedCode) {
-      const extractHtmlCode = (code: string) => {
-        const htmlMatch = code.match(/```html([\s\S]*?)```/);
-        if (htmlMatch && htmlMatch[1]) return htmlMatch[1].trim();
+      // Helper to extract content from AI code vs saved snippets
+      let contentToInject = generatedCode;
 
-        return code
-          .replace(/```html/g, "")
-          .replace(/```/g, "")
-          .replace(/^html,/, "")
-          .trim();
-      };
+      // Handle AI markdown blocks
+      if (generatedCode.includes('```html')) {
+        const match = generatedCode.match(/```html([\s\S]*?)```/);
+        if (match && match[1]) {
+          contentToInject = match[1].trim();
+        }
+      }
 
-      const cleanCode = extractHtmlCode(generatedCode);
-      // Directly update innerHTML to prevent iframe reloads and "blanking"
+      // Check if the content is a full HTML document (likely from an old save/AI)
+      // If it has <body> or <head>, we might be dealing with a full document.
+      if (contentToInject.includes('<body') || contentToInject.includes('<html')) {
+        const parser = new DOMParser();
+        const parsedDoc = parser.parseFromString(contentToInject, 'text/html');
+        // If it was a full document, just get the body's content (or the root if it exists)
+        const parsedRoot = parsedDoc.getElementById('root');
+        if (parsedRoot) {
+          contentToInject = parsedRoot.innerHTML;
+        } else {
+          contentToInject = parsedDoc.body.innerHTML;
+        }
+      }
+
+      const cleanCode = contentToInject.trim();
+
+      // If the incoming code matches what we last captured/rendered, skip to preserve focus
+      if (lastSubmittedCodeRef.current === cleanCode) {
+        return;
+      }
+
+      // Directly update innerHTML to prevent iframe reloads
       root.innerHTML = cleanCode;
+      lastSubmittedCodeRef.current = cleanCode;
     } else {
-      root.innerHTML = ''; // Clear if empty
+      root.innerHTML = '';
+      lastSubmittedCodeRef.current = '';
     }
   }, [generatedCode]);
 
@@ -108,6 +141,8 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
       setTimeout(setupListeners, 100);
       return;
     }
+
+
 
     const handleMouseOver = (e: MouseEvent) => {
       if (selectedElRef.current) return;
@@ -138,6 +173,8 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
       if (selectedElRef.current) {
         selectedElRef.current.style.outline = "";
         selectedElRef.current.removeAttribute("contenteditable");
+        // Capture state when deseleting/switching elements
+        captureCurrentState();
       }
 
       selectedElRef.current = target;
@@ -152,19 +189,52 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
         selectedElRef.current.style.outline = "";
         selectedElRef.current.removeAttribute("contenteditable");
         selectedElRef.current = null;
+        // Capture state on Escape
+        captureCurrentState();
       }
+    };
+
+
+
+    const onInput = () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        captureCurrentState();
+      }, 1000);
+    };
+
+    const onBlur = () => {
+      captureCurrentState();
+    };
+
+    const captureCurrentState = () => {
+      if (!onCodeUpdateRef.current || !root) return;
+
+      // We ONLY capture the inner content of the design (the root div)
+      // to keep history data clean and snippets-based.
+      const htmlSnippet = root.innerHTML;
+
+      // Update our local tracking ref so we ignore the prop-update "echo"
+      lastSubmittedCodeRef.current = htmlSnippet;
+
+      onCodeUpdateRef.current(htmlSnippet);
     };
 
     root.addEventListener("mouseover", handleMouseOver);
     root.addEventListener("mouseout", handleMouseOut);
     root.addEventListener("click", handleClick);
     doc.addEventListener("keydown", handleKeyDown);
+    root.addEventListener("focusout", onBlur);
+    root.addEventListener("input", onInput);
 
     return () => {
       root.removeEventListener("mouseover", handleMouseOver);
       root.removeEventListener("mouseout", handleMouseOut);
       root.removeEventListener("click", handleClick);
       doc.removeEventListener("keydown", handleKeyDown);
+      root.removeEventListener("focusout", onBlur);
+      root.removeEventListener("input", onInput);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   };
 
@@ -182,37 +252,31 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
       try {
         const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
         if (iframeDoc) {
-          const cloneDoc = iframeDoc.documentElement.cloneNode(true) as HTMLElement;
+          const root = iframeDoc.getElementById('root');
+          if (root) {
+            const html = root.innerHTML;
+            const token = await getToken();
+            const result = await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/frames`, {
+              designCode: html,
+              frameId: frameId,
+              projectId: projectId
+            }, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
 
-          //remove all outlines before saving
-          const AllEls = cloneDoc.querySelectorAll<HTMLElement>("*");
-          AllEls.forEach((el) => {
-            el.style.outline = '';
-            el.style.cursor = '';
-            el.removeAttribute("contenteditable");
-          });
-
-          const html = cloneDoc.outerHTML;
-          console.log("HTML to save:", html);
-
-          const token = await getToken();
-          const result = await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/frames`, {
-            designCode: html,
-            frameId: frameId,
-            projectId: projectId
-          }, {
-            headers: {
-              'Authorization': `Bearer ${token}`
+            if (onFrameUpdate) {
+              onFrameUpdate(result.data.data);
             }
-          });
-          console.log(result.data);
-          toast.success('Your website is saved and ready!');
+            toast.success('Your website is saved!');
+          }
         }
       } catch (err) {
         console.error("Save error:", err);
+        toast.error('Failed to save website');
       }
     }
-  }
+  };
+
 
   return (
     <div className={`${isMinimized ? 'w-12' : isExpanded ? 'w-full' : 'flex-1'} 
@@ -229,7 +293,7 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
         {!isMinimized && (
           <div className="flex items-center gap-2">
             {/* @ts-ignore */}
-            <VersionSelector frames={frames} currentFrameId={currentFrame?.frameId || frameId} />
+            <VersionSelector frames={frames} currentFrameId={currentFrame?.frameId || frameId} onDelete={onDelete} />
           </div>
         )}
       </PanelHeader>
@@ -253,6 +317,7 @@ function WebsiteDesign({ generatedCode, isMinimized, isExpanded, onToggle, onExp
             selectedScreenSize={selectedScreenSize}
             setSelectedScreenSize={setSelectedScreenSize}
             generatedCode={generatedCode}
+            frameId={currentFrame?.frameId || frameId}
           />
         </div>
       </div>

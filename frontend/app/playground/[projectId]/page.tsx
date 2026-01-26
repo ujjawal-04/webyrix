@@ -42,7 +42,7 @@ You are a Legendary UI/UX Designer and Senior Front-end Architect. Your mission 
 
 ### 3. MASTER-CLASS ARCHITECTURE
 - **Typography Mastery**: Strictly use **Inter**. Use bold weights (\`font-extrabold\`) for impact and tight tracking (\`tracking-tight\`) on primary headings.
-- **Micro-Interactions**: Every interactive element MUST have: \`transition-all duration-300 hover:scale-[1.03] active:scale-95\`.
+- micro-Interactions**: Every interactive element MUST have: \`transition-all duration-300 hover:scale-[1.03] active:scale-95\`.
 - **Images (MANDATORY)**: Always include high-fidelity Unsplash images: \`https://images.unsplash.com/photo-{ID}?auto=format&fit=crop&q=80&w=1200\`. Match the industry perfectly.
 - **Icons**: Use **FontAwesome 6** (\`fa-solid\`).
 
@@ -68,6 +68,41 @@ You are a Legendary UI/UX Designer and Senior Front-end Architect. Your mission 
 
 GOAL: Build a result that earns a "Site of the Day" nomination. Excellence is the only option. 🚀`;
 
+const useHistory = (initialState: string) => {
+  const [history, setHistory] = useState<string[]>([initialState]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const set = (newState: string) => {
+    if (!newState || newState === history[currentIndex]) return;
+    const nextHistory = [...history.slice(0, currentIndex + 1), newState];
+    setHistory(nextHistory);
+    setCurrentIndex(nextHistory.length - 1);
+  };
+
+  const undo = () => {
+    if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
+  };
+
+  const redo = () => {
+    if (currentIndex < history.length - 1) setCurrentIndex(prev => prev + 1);
+  };
+
+  const reset = (state: string) => {
+    setHistory([state]);
+    setCurrentIndex(0);
+  }
+
+  return {
+    state: history[currentIndex],
+    set,
+    undo,
+    redo,
+    canUndo: currentIndex > 0,
+    canRedo: currentIndex < history.length - 1,
+    reset
+  };
+};
+
 function PlayGround() {
   const { projectId } = useParams();
   const params = useSearchParams();
@@ -75,13 +110,24 @@ function PlayGround() {
   const pathname = usePathname();
   const frameId = params.get('frameId');
   const { getToken } = useAuth();
+  const prevFrameIdRef = useRef<string | null>(null);
 
   const [frameDetail, setFrameDetail] = useState<Frame>();
   const [projectDetail, setProjectDetail] = useState<any>();
   const [loading, setLoading] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [messages, setMessages] = useState<Messages[]>([]);
-  const [generatedCode, setGeneratedCode] = useState<string>('');
+
+  const {
+    state: generatedCode,
+    set: setGeneratedCode,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    reset: resetGeneratedCode
+  } = useHistory('');
+
   const [streamingCode, setStreamingCode] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const isGeneratingRef = useRef(false);
@@ -89,7 +135,6 @@ function PlayGround() {
   const [viewingStreaming, setViewingStreaming] = useState(false);
   const [selectedElement, setSelectedElement] = useState<HTMLElement | null>(null);
 
-  // Panel state management
   const {
     panelStates,
     togglePanel,
@@ -100,12 +145,9 @@ function PlayGround() {
   } = usePanelState();
 
   const [mobileTab, setMobileTab] = useState<'chat' | 'preview'>('preview');
-
-  // Resize state
-  const [chatWidth, setChatWidth] = useState(400); // Default 400px
+  const [chatWidth, setChatWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Keep local mobile tab in sync with panelStates
   useEffect(() => {
     if (screenSize === 'mobile') {
       setMobileTab(panelStates.preview.minimized ? 'chat' : 'preview');
@@ -124,7 +166,6 @@ function PlayGround() {
     }
   };
 
-  // Resize handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -133,54 +174,57 @@ function PlayGround() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
-
       const newWidth = e.clientX;
-      // Constrain width between 280px and 600px
-      if (newWidth >= 280 && newWidth <= 600) {
-        setChatWidth(newWidth);
-      }
+      if (newWidth >= 280 && newWidth <= 600) setChatWidth(newWidth);
     };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
+    const handleMouseUp = () => setIsResizing(false);
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     }
-
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizing]);
 
-  // Refresh iframe - force reload of generated code
   const handleRefresh = () => {
     const currentCode = generatedCode;
-    setGeneratedCode('');
-    setTimeout(() => {
-      setGeneratedCode(currentCode);
-      toast.success('Preview refreshed!');
-    }, 50);
+    resetGeneratedCode(currentCode);
+    toast.success('Preview refreshed!');
   };
 
   useEffect(() => {
-    if (projectId || frameId) {
-      FetchInitialData();
-      setViewingStreaming(false); // Switch to archive view if user clicks a version
+    if (projectId) {
+      const frameChanged = prevFrameIdRef.current !== frameId;
+      if (frameChanged || !prevFrameIdRef.current) {
+        FetchInitialData(true);
+      }
+      prevFrameIdRef.current = frameId;
+      setViewingStreaming(false);
     }
   }, [frameId, projectId]);
 
-  const FetchInitialData = async () => {
+  // Handle Undo/Redo key bindings for power users
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        if (e.shiftKey) {
+          if (canRedo) redo();
+        } else {
+          if (canUndo) undo();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canUndo, canRedo, undo, redo]);
+
+  const FetchInitialData = async (shouldResetHistory: boolean = false) => {
     setLoading(true);
     try {
       const token = await getToken();
       const headers = { Authorization: `Bearer ${token}` };
-
-      // Parallelize both project and frame details fetching
-      // Safeguard: Ensure we don't fetch if IDs are 'undefined' or null
       const isValidProjectId = projectId && projectId !== 'undefined';
       const isValidFrameId = frameId && frameId !== 'undefined';
 
@@ -194,108 +238,75 @@ function PlayGround() {
         setProjectDetail(projectData);
         if (projectData?.chats) {
           setMessages(projectData.chats);
-
-          // Auto-resume generation if the latest frame has NO design code
           const sortedFrames = [...(projectData.frames || [])].sort((a: any, b: any) =>
             new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime()
           );
           const latestFrame = sortedFrames[0];
-
           if (latestFrame && !latestFrame.designCode && projectData.chats.length > 0 && !isGeneratingRef.current && !hasAutoResumedRef.current) {
-            // Find the last user message to use as prompt
             const userMessages = projectData.chats.filter((m: any) => m.role === 'user');
             const lastUserMsg = userMessages[userMessages.length - 1]?.content;
             if (lastUserMsg) {
               hasAutoResumedRef.current = true;
-              console.log("[Playground] Auto-resuming generation for prompt:", lastUserMsg);
               setTimeout(() => SendMessage(lastUserMsg, true), 1000);
             }
           }
         }
 
-        // If no frameId in URL, use the latest frame from the project
         if (!frameId && projectData?.frames?.length > 0) {
           const sortedFrames = [...projectData.frames].sort((a: any, b: any) =>
             new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime()
           );
           const latestFrame = sortedFrames[0];
           setFrameDetail(latestFrame);
-
           if (latestFrame.designCode) {
             let formattedCode = latestFrame.designCode;
             if (formattedCode.includes('```html')) {
               const index = formattedCode.indexOf('```html');
               formattedCode = formattedCode.slice(index + 7);
               const endIndex = formattedCode.indexOf('```');
-              if (endIndex !== -1) {
-                formattedCode = formattedCode.slice(0, endIndex);
-              }
+              if (endIndex !== -1) formattedCode = formattedCode.slice(0, endIndex);
             }
-            setGeneratedCode(formattedCode.trim());
+            if (shouldResetHistory) resetGeneratedCode(formattedCode.trim());
+            else setGeneratedCode(formattedCode.trim());
           }
-          // Sync URL with latest frameId if missing
-          if (!frameId) {
-            router.replace(`${pathname}?frameId=${latestFrame.frameId}`, { scroll: false });
-          }
+          if (!frameId) router.replace(`${pathname}?frameId=${latestFrame.frameId}`, { scroll: false });
         }
       }
 
       if (frameRes) {
         const data = frameRes.data?.data;
         setFrameDetail(data);
-
         const designCode = data?.designCode;
-        if (designCode) {
-          let formattedCode = designCode;
-          if (designCode.includes('```html')) {
-            const index = designCode.indexOf('```html');
-            formattedCode = designCode.slice(index + 7);
+        if (designCode !== undefined) {
+          let formattedCode = designCode || '';
+          if (formattedCode.includes('```html')) {
+            const index = formattedCode.indexOf('```html');
+            formattedCode = formattedCode.slice(index + 7);
             const endIndex = formattedCode.indexOf('```');
-            if (endIndex !== -1) {
-              formattedCode = formattedCode.slice(0, endIndex);
-            }
+            if (endIndex !== -1) formattedCode = formattedCode.slice(0, endIndex);
           }
-          setGeneratedCode(formattedCode.trim());
+          if (shouldResetHistory) resetGeneratedCode(formattedCode.trim());
+          else setGeneratedCode(formattedCode.trim());
         }
-
-        if (data?.chats || data?.chatMessages) {
-          setMessages(data?.chats || data?.chatMessages);
-        }
-
-        // Auto-resume if THIS specific frame has no code
-        if (!data?.designCode && messages.length > 0) {
-          const userMessages = messages.filter((m: any) => m.role === 'user');
-          const lastUserMsg = userMessages[userMessages.length - 1]?.content;
-          if (lastUserMsg) SendMessage(lastUserMsg);
-        }
+        if (data?.chats || data?.chatMessages) setMessages(data?.chats || data?.chatMessages);
       }
     } catch (error) {
-      console.error("Error fetching initial data:", error);
-      toast.error("Failed to load workspace data");
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const SendMessage = async (userInput: string, isAutoResume: boolean = false) => {
-    // Synchronous guard check
-    if (isGeneratingRef.current) {
-      console.warn("[Playground] Preventing concurrent generation for:", userInput);
-      return;
-    }
-
+    if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
     setIsChatLoading(true);
     setIsStreaming(true);
     setStreamingCode('');
-    setViewingStreaming(true); // Automatically follow new generation
-
-    // Add user message to chat ONLY if NOT an auto-resume
+    setViewingStreaming(true);
     if (!isAutoResume) {
       setMessages((prev: any) => [...prev, { role: 'user', content: userInput }]);
     }
-
-
     try {
       const token = await getToken();
       const finalPrompt = Prompt
@@ -315,55 +326,39 @@ function PlayGround() {
 
       const reader = result.body?.getReader();
       const decoder = new TextDecoder();
-
       let aiResponse = '';
       let generatedHtmlCode = '';
       let isCode = false;
       let buffer = '';
-
-      // Create a temporary message for streaming
       setMessages((prev: any) => [...prev, { role: 'assistant', content: '' }]);
 
       while (reader) {
         const { done, value } = await reader.read();
         if (done) break;
-
         buffer += decoder.decode(value, { stream: true });
-
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
-
         for (const line of lines) {
           const trimmedLine = line.trim();
           if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
-
           const jsonStr = trimmedLine.slice(6);
           if (jsonStr === '[DONE]') continue;
-
           try {
             const data = JSON.parse(jsonStr);
             const content = data.choices?.[0]?.delta?.content || '';
-
             if (content) {
               aiResponse += content;
-
-              // Detect code fences
               if (!isCode && aiResponse.includes('```html')) {
                 isCode = true;
                 const index = aiResponse.indexOf('```html') + 7;
                 generatedHtmlCode = aiResponse.slice(index);
                 setStreamingCode(generatedHtmlCode);
-
-                // Update chat to indicate we started generating code
                 setMessages((prev: any) => {
                   const newMessages = [...prev];
-                  if (newMessages.length > 0) {
-                    newMessages[newMessages.length - 1].content = 'Generating your website...';
-                  }
+                  if (newMessages.length > 0) newMessages[newMessages.length - 1].content = 'Generating your website...';
                   return newMessages;
                 });
               } else if (isCode) {
-                // If we are in code block, check for end
                 if (aiResponse.includes('```', aiResponse.indexOf('```html') + 7)) {
                   const startIndex = aiResponse.indexOf('```html') + 7;
                   const endIndex = aiResponse.lastIndexOf('```');
@@ -374,12 +369,9 @@ function PlayGround() {
                   setStreamingCode(generatedHtmlCode);
                 }
               } else {
-                // Conversational text streaming
                 setMessages((prev: any) => {
                   const newMessages = [...prev];
-                  if (newMessages.length > 0) {
-                    newMessages[newMessages.length - 1].content = aiResponse;
-                  }
+                  if (newMessages.length > 0) newMessages[newMessages.length - 1].content = aiResponse;
                   return newMessages;
                 });
               }
@@ -389,13 +381,12 @@ function PlayGround() {
           }
         }
       }
-
       setIsChatLoading(false);
       setIsStreaming(false);
 
       if (isCode && generatedHtmlCode) {
-        setGeneratedCode(generatedHtmlCode); // Switch active view to new code
-        // Update chat with success message
+        // Reset history to the newly generated code so undo history starts fresh for this version
+        resetGeneratedCode(generatedHtmlCode);
         setMessages((prev: any) => {
           const newMessages = [...prev];
           if (newMessages.length > 0) {
@@ -403,18 +394,20 @@ function PlayGround() {
           }
           return newMessages;
         });
-
-        toast.success("Your website is ready!"); // Global toast as requested
-
-        // ONLY save version when code is fully ready and streaming finished
+        toast.success("Your website is ready!");
         await saveGeneratedCode(generatedHtmlCode);
+      } else if (aiResponse) {
+        setMessages((prev: any) => {
+          const newMessages = [...prev];
+          if (newMessages.length > 0) {
+            newMessages[newMessages.length - 1].content = aiResponse;
+          }
+          return newMessages;
+        });
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      setMessages((prev: any) => [
-        ...prev,
-        { role: 'assistant', content: 'Sorry, something went wrong.' }
-      ]);
+      setMessages((prev: any) => [...prev, { role: 'assistant', content: 'Sorry, something went wrong.' }]);
       toast.error("Failed to generate code");
     } finally {
       setIsChatLoading(false);
@@ -423,14 +416,10 @@ function PlayGround() {
     }
   };
 
-  // Debounced save for messages
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (messages.length > 0) {
-        SaveMessages();
-      }
-    }, 2000); // Wait 2 seconds of inactivity before saving
-
+      if (messages.length > 0) SaveMessages();
+    }, 2000);
     return () => clearTimeout(timer);
   }, [messages]);
 
@@ -454,13 +443,9 @@ function PlayGround() {
       const existingVersions = projectDetail?.frames?.filter((f: any) => f.designCode) || [];
       const nextVersionNumber = existingVersions.length + 1;
       const versionName = `Version ${nextVersionNumber}`;
-
-      // Check if current frame is "empty" (initial placeholder)
       const isInitialFrame = !frameDetail?.designCode;
-
       let res: any;
       if (isInitialFrame && frameId) {
-        // Update the existing placeholder frame instead of creating a new version
         res = await axios.put(process.env.NEXT_PUBLIC_API_URL + '/api/frames', {
           frameId: frameId,
           projectId: projectId,
@@ -469,21 +454,9 @@ function PlayGround() {
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
-
-        // Update local state for the current frame with full data from backend
         const updatedFrame = res.data.data;
-        setFrameDetail(updatedFrame);
-
-        setProjectDetail((prev: any) => {
-          if (!prev) return prev;
-          const updatedFrames = (prev.frames || []).map((f: any) =>
-            f.frameId === frameId ? updatedFrame : f
-          );
-          return { ...prev, frames: updatedFrames };
-        });
-        // Silent finalized for auto-save as requested
+        handleFrameUpdate(updatedFrame);
       } else {
-        // Create a new version normally
         const newFrameId = uuidv4();
         res = await axios.post(process.env.NEXT_PUBLIC_API_URL + '/api/frames/version', {
           frameId: newFrameId,
@@ -494,20 +467,13 @@ function PlayGround() {
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
-
         const newFrame = res.data.data;
-        setFrameDetail(newFrame); // Update locally immediately
+        setFrameDetail(newFrame);
         setProjectDetail((prev: any) => {
           if (!prev) return prev;
-          return {
-            ...prev,
-            frames: [...(prev.frames || []), newFrame]
-          };
+          return { ...prev, frames: [...(prev.frames || []), newFrame] };
         });
-
-        if (viewingStreaming) {
-          router.replace(`${pathname}?frameId=${newFrameId}`);
-        }
+        if (viewingStreaming) router.replace(`${pathname}?frameId=${newFrameId}`);
       }
     } catch (error) {
       console.error("Error saving code version:", error);
@@ -543,41 +509,55 @@ function PlayGround() {
     }
   }
 
+  const handleFrameUpdate = (updatedFrame: any) => {
+    setFrameDetail(updatedFrame);
+    setProjectDetail((prev: any) => {
+      if (!prev) return prev;
+      const updatedFrames = (prev.frames || []).map((f: any) => f.frameId === updatedFrame.frameId ? updatedFrame : f);
+      return { ...prev, frames: updatedFrames };
+    });
+  };
+
+  const handleDeleteVersion = (deletedFrameId: string) => {
+    setProjectDetail((prev: any) => {
+      if (!prev) return prev;
+      const filteredFrames = (prev.frames || []).filter((f: any) => f.frameId !== deletedFrameId);
+
+      // If we deleted the current frame, navigate to the latest remaining version
+      if (frameId === deletedFrameId && filteredFrames.length > 0) {
+        const sorted = [...filteredFrames].sort((a: any, b: any) =>
+          new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime()
+        );
+        router.replace(`${pathname}?frameId=${sorted[0].frameId}`, { scroll: false });
+      } else if (filteredFrames.length === 0) {
+        router.replace(`${pathname}`, { scroll: false });
+      }
+
+      return { ...prev, frames: filteredFrames };
+    });
+  };
+
   return (
     <div className='h-screen flex flex-col bg-gradient-to-br from-background via-background to-card/20'>
       <PlaygroundHeader
         projectId={projectId as string}
         onRefresh={handleRefresh}
-        onUndo={() => { toast.info('Undo functionality coming soon!') }}
-        onRedo={() => { toast.info('Redo functionality coming soon!') }}
-        canUndo={false}
-        canRedo={false}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onProjectUpdate={(data) => setProjectDetail((prev: any) => ({ ...prev, ...data }))}
       />
 
       <div className='flex flex-col md:flex-row flex-1 overflow-hidden'>
-        {/* Mobile tab selector */}
         {screenSize === 'mobile' && (
           <div className="px-3 pt-3">
             <div className="flex items-center gap-2 bg-card/50 backdrop-blur-sm rounded-xl p-1 border border-border/30">
-              <button
-                aria-pressed={mobileTab === 'chat'}
-                onClick={() => selectMobileTab('chat')}
-                className={`flex-1 text-sm py-2 rounded-lg text-center transition-all duration-200 ${mobileTab === 'chat' ? 'bg-background text-foreground font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                Chat
-              </button>
-              <button
-                aria-pressed={mobileTab === 'preview'}
-                onClick={() => selectMobileTab('preview')}
-                className={`flex-1 text-sm py-2 rounded-lg text-center transition-all duration-200 ${mobileTab === 'preview' ? 'bg-background text-foreground font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                Preview
-              </button>
+              <button onClick={() => selectMobileTab('chat')} className={`flex-1 text-sm py-2 rounded-lg text-center transition-all duration-200 ${mobileTab === 'chat' ? 'bg-background text-foreground font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Chat</button>
+              <button onClick={() => selectMobileTab('preview')} className={`flex-1 text-sm py-2 rounded-lg text-center transition-all duration-200 ${mobileTab === 'preview' ? 'bg-background text-foreground font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Preview</button>
             </div>
           </div>
         )}
-        {/* Chat Section */}
         {!panelStates.chat.minimized && screenSize !== 'mobile' && (
           <>
             <div style={{ width: panelStates.chat.expanded ? '40%' : `${chatWidth}px` }}>
@@ -587,9 +567,7 @@ function PlayGround() {
                 onDeleteMessage={handleDeleteMessage}
                 onClearChat={handleClearChat}
                 loading={isChatLoading}
-                fullPrompt={Prompt
-                  .replace('{userInput}', '...')
-                  .replace('{projectDescription}', projectDetail?.description || 'A professional web application')}
+                fullPrompt={Prompt.replace('{userInput}', '...').replace('{projectDescription}', projectDetail?.description || 'A professional web application')}
                 isMinimized={panelStates.chat.minimized}
                 isExpanded={panelStates.chat.expanded}
                 onToggle={() => togglePanel('chat')}
@@ -597,28 +575,13 @@ function PlayGround() {
                 onMinimize={() => resetPanel('chat')}
               />
             </div>
-
-            {/* Resize Handle */}
             {!panelStates.chat.expanded && (
-              <div
-                onMouseDown={handleMouseDown}
-                className={`w-1 bg-border/50 hover:bg-border hover:w-1.5 cursor-col-resize transition-all duration-150 relative group ${isResizing ? 'bg-primary w-1.5' : ''
-                  }`}
-              >
+              <div onMouseDown={handleMouseDown} className={`w-1 bg-border/50 hover:bg-border hover:w-1.5 cursor-col-resize transition-all duration-150 relative group ${isResizing ? 'bg-primary w-1.5' : ''}`}>
                 <div className="absolute inset-y-0 -left-1 -right-1" />
-                {/* Visual indicator on hover */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="flex gap-0.5">
-                    <div className="w-0.5 h-8 bg-muted-foreground rounded-full" />
-                    <div className="w-0.5 h-8 bg-muted-foreground rounded-full" />
-                  </div>
-                </div>
               </div>
             )}
           </>
         )}
-
-        {/* Mobile Chat Section */}
         {!panelStates.chat.minimized && screenSize === 'mobile' && mobileTab === 'chat' && (
           <ChatSection
             messages={messages}
@@ -626,9 +589,7 @@ function PlayGround() {
             onDeleteMessage={handleDeleteMessage}
             onClearChat={handleClearChat}
             loading={isChatLoading}
-            fullPrompt={Prompt
-              .replace('{userInput}', '...')
-              .replace('{projectDescription}', projectDetail?.description || 'A professional web application')}
+            fullPrompt={Prompt.replace('{userInput}', '...').replace('{projectDescription}', projectDetail?.description || 'A professional web application')}
             isMinimized={panelStates.chat.minimized}
             isExpanded={panelStates.chat.expanded}
             onToggle={() => togglePanel('chat')}
@@ -636,18 +597,14 @@ function PlayGround() {
             onMinimize={() => resetPanel('chat')}
           />
         )}
-
-        {/* Minimized Chat Panel (hidden on mobile to keep Preview clean) */}
         {panelStates.chat.minimized && screenSize !== 'mobile' && (
           <div className="w-12 h-full bg-card/50 border-r border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-card transition-all duration-200" onClick={() => togglePanel('chat')}>
             <div className="writing-mode-vertical text-xs font-medium text-muted-foreground">Chat</div>
           </div>
         )}
-
-        {/* Website Design Section (render on desktop/tablet or when Preview tab selected on mobile) */}
         {(screenSize !== 'mobile' || mobileTab === 'preview') && (
           <WebsiteDesign
-            generatedCode={(isStreaming && viewingStreaming) ? streamingCode : generatedCode?.replace('```', '')}
+            generatedCode={(isStreaming && viewingStreaming) ? streamingCode : generatedCode}
             isMinimized={panelStates.preview.minimized}
             isExpanded={panelStates.preview.expanded}
             onToggle={() => togglePanel('preview')}
@@ -657,43 +614,20 @@ function PlayGround() {
             frames={projectDetail?.frames || []}
             currentFrame={frameDetail}
             isStreaming={isStreaming}
+            onCodeUpdate={(newCode) => setGeneratedCode(newCode)}
+            onFrameUpdate={handleFrameUpdate}
+            onDelete={handleDeleteVersion}
           />
         )}
-
-        {/* Settings Panel - Right Side */}
         {selectedElement && !panelStates.settings.minimized && (
           <>
             {selectedElement.tagName === 'IMG' ? (
-              <ImageSettingSection
-                // @ts-ignore
-                selectedEl={selectedElement}
-                isMinimized={panelStates.settings.minimized}
-                isExpanded={panelStates.settings.expanded}
-                onToggle={() => togglePanel('settings')}
-                onExpand={() => expandPanel('settings')}
-                onMinimize={() => resetPanel('settings')}
-              />
+              <ImageSettingSection selectedEl={selectedElement as any} isMinimized={panelStates.settings.minimized} isExpanded={panelStates.settings.expanded} onToggle={() => togglePanel('settings')} onExpand={() => expandPanel('settings')} onMinimize={() => resetPanel('settings')} />
             ) : (
-              <ElementSettingSection
-                selectedEl={selectedElement}
-                clearSelection={() => setSelectedElement(null)}
-                isMinimized={panelStates.settings.minimized}
-                isExpanded={panelStates.settings.expanded}
-                onToggle={() => togglePanel('settings')}
-                onExpand={() => expandPanel('settings')}
-                onMinimize={() => resetPanel('settings')}
-              />
+              <ElementSettingSection selectedEl={selectedElement} clearSelection={() => setSelectedElement(null)} isMinimized={panelStates.settings.minimized} isExpanded={panelStates.settings.expanded} onToggle={() => togglePanel('settings')} onExpand={() => expandPanel('settings')} onMinimize={() => resetPanel('settings')} />
             )}
           </>
         )}
-
-        {/* Minimized Settings Panel (hidden on mobile) */}
-        {panelStates.settings.minimized && selectedElement && screenSize !== 'mobile' && (
-          <div className="w-12 h-full bg-card/50 border-l border-border flex flex-col items-center pt-4 cursor-pointer hover:bg-card transition-all duration-200" onClick={() => togglePanel('settings')}>
-            <div className="writing-mode-vertical text-xs font-medium text-muted-foreground">Settings</div>
-          </div>
-        )}
-
       </div>
     </div>
   );
