@@ -1,6 +1,6 @@
 # Webyrix Frontend
 
-Next.js-based frontend for the Webyrix AI-powered web design platform.
+Next.js-based frontend for the Webyrix which is an AI-powered web design platform.
 
 ## Tech Stack
 
