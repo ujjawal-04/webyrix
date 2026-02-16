@@ -6,6 +6,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import React, { useState } from 'react'
 import { useUser } from '@clerk/nextjs'
+import { SignInDialog } from '@/components/auth/SignInDialog'
+import { SignUpDialog } from '@/components/auth/SignUpDialog'
 
 const navigation = [
   { name: 'Explore', href: '#explore' },
@@ -16,6 +18,8 @@ const navigation = [
 const Header = () => {
   const { user } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
+  const [signUpOpen, setSignUpOpen] = useState(false);
 
   return (
     <header className='relative'>
@@ -70,20 +74,23 @@ const Header = () => {
             <Button variant={'ghost'} className='text-muted-foreground hover:text-foreground hover:bg-transparent'>
               Contact
             </Button>
-          </Link>
-
-          {!user ? (
+          </Link>          {!user ? (
             <>
-              <Link href="/sign-in">
-                <Button variant={'ghost'} className='text-muted-foreground hover:text-foreground hover:bg-transparent'>
-                  Log in
-                </Button>
-              </Link>
-              <Link href="/sign-up">
-                <Button className='bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-5'>
-                  Sign Up
-                </Button>
-              </Link>
+              <Button
+                variant={'ghost'}
+                className='text-muted-foreground hover:text-foreground hover:bg-transparent'
+                onClick={() => setSignInOpen(true)}
+                data-signin-trigger
+              >
+                Log in
+              </Button>
+              <Button
+                className='bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-5'
+                onClick={() => setSignUpOpen(true)}
+                data-signup-trigger
+              >
+                Sign Up
+              </Button>
             </>
           ) : (
             <>
@@ -176,16 +183,28 @@ const Header = () => {
             <div className='mt-auto flex flex-col gap-3'>
               <Link href='/contact' onClick={() => setMenuOpen(false)}>
                 <Button variant={'ghost'} className='w-full'>Contact</Button>
-              </Link>
-
-              {!user ? (
+              </Link>              {!user ? (
                 <>
-                  <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
-                    <Button className='w-full'>Log in</Button>
-                  </Link>
-                  <Link href="/sign-up" onClick={() => setMenuOpen(false)}>
-                    <Button className='w-full bg-primary text-primary-foreground'>Sign Up</Button>
-                  </Link>
+                  <Button
+                    className='w-full'
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setSignInOpen(true);
+                    }}
+                    data-signin-trigger
+                  >
+                    Log in
+                  </Button>
+                  <Button
+                    className='w-full bg-primary text-primary-foreground'
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setSignUpOpen(true);
+                    }}
+                    data-signup-trigger
+                  >
+                    Sign Up
+                  </Button>
                 </>
               ) : (
                 <>
@@ -207,10 +226,13 @@ const Header = () => {
                   </div>
                 </>
               )}
-            </div>
-          </aside>
+            </div>          </aside>
         </div>
       )}
+
+      {/* Auth Dialogs */}
+      <SignInDialog open={signInOpen} onOpenChange={setSignInOpen} />
+      <SignUpDialog open={signUpOpen} onOpenChange={setSignUpOpen} />
     </header>
   )
 }
