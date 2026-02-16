@@ -97,7 +97,6 @@ export default function ViewProject() {
         : null;
 
     const displayCode = selectedFrame ? extractHtmlCode(selectedFrame.designCode) : '';
-
     return (
         <div className="h-screen flex flex-col overflow-hidden bg-background">
             {/* Header */}

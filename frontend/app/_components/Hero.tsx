@@ -49,7 +49,7 @@ function Hero() {
       if (!userInput || loading) return;
 
       if (!user) {
-        openSignIn({ forceRedirectUrl: '/workspace' });
+        router.push('/sign-in');
       } else {
         CreateNewProject();
       }
@@ -139,11 +139,13 @@ function Hero() {
             </Button>
 
             {!user ? (
-              <SignInButton mode='modal' forceRedirectUrl={'/workspace'}>
-                <Button disabled={!userInput} className="rounded-xl bg-white text-black hover:bg-white/90 px-8 py-4 font-medium text-sm h-auto shadow-lg shadow-white/10 transition-all hover:scale-105 active:scale-95">
-                  <ArrowUp className='h-5 w-5' />
-                </Button>
-              </SignInButton>
+              <Button
+                disabled={!userInput}
+                onClick={() => router.push('/sign-in')}
+                className="rounded-xl bg-white text-black hover:bg-white/90 px-8 py-4 font-medium text-sm h-auto shadow-lg shadow-white/10 transition-all hover:scale-105 active:scale-95"
+              >
+                <ArrowUp className='h-5 w-5' />
+              </Button>
             ) : (
               <Button
                 disabled={!userInput || loading}

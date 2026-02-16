@@ -193,21 +193,21 @@
   position: relative;
 }
 
-.hero-gradient-border::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, #a855f7, #f472b6, #fb923c, #a855f7);
-  background-size: 200% 200%;
-  animation: gradient-shift 4s linear infinite;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
+  .hero-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #a855f7, #f472b6, #fb923c, #a855f7);
+    background-size: 200% 200%;
+    animation: gradient-shift 4s linear infinite;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
 
 
 @keyframes glow-pulse {
@@ -240,4 +240,58 @@
 /* Smooth transitions for panel resizing */
 .panel-transition {
   transition: width 0.3s ease-in-out, height 0.3s ease-in-out;
+}
+
+/* Clerk branding "Secured by" / "Development mode" TOTAL SUPPRESSION */
+.cl-footer,
+.cl-internal-b3fm6y,
+.cl-badge,
+.cl-internal-1dauvpw,
+.cl-internal-18be968,
+.cl-internal-607386,
+.cl-internal-1scq7x4,
+.cl-internal-1fpq5at,
+.cl-internal-15ycszv,
+.cl-userButtonPopoverFooter,
+.cl-internal-1senzhh> :last-child,
+/* Target last child of popover card which is usually branding */
+a[aria-label="Clerk logo"],
+.cl-logo-box,
+.cl-internal-clerk-logo,
+[data-clerk-branding],
+[class*="cl-internal-"][class*="scq7x4"],
+[class*="cl-internal-"][class*="fpq5at"],
+.cl-internal-1scq7x4,
+.cl-internal-1fpq5at,
+#cl-parent+div,
+/* Catch siblings of Clerk root */
+.cl-headerSubtitle+div+div {
+  /* Heuristic for branding placement */
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+/* Ensure no branding is visible in the UserButton Popover specifically */
+[data-clerk-component="UserButton"] .cl-popoverBox> :last-child {
+  display: none !important;
+}
+
+
+/* Custom link styling to override Clerk defaults */
+.cl-footerActionLink {
+  color: oklch(0.6 0.25 300) !important;
+  /* Brand purple-ish */
+  text-decoration-color: oklch(0.6 0.25 300 / 0.3) !important;
+}
+
+.cl-footerActionLink:hover {
+  color: oklch(0.7 0.25 300) !important;
 }
